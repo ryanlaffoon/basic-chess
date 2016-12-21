@@ -1,0 +1,108 @@
+
+body{
+	background-color: black;
+}
+
+.board{
+	height: 450px;
+	width: 450px;
+	margin: auto;
+}
+
+.square {
+	height: 50px;
+	width: 50px;
+	text-align: center;
+	display: inline-block;
+	background-color: #f2dfb5;
+	border-radius: 7px;
+	border: 2px solid black;
+	margin: 1px;
+	
+	line-height: 50px;
+	font-size: 3em;
+}
+	.square:nth-child(-2n+8), 
+	.square:nth-child(8) ~ .square:nth-child(-2n+15), 
+	.square:nth-child(16) ~ .square:nth-child(-2n+24),
+	.square:nth-child(24) ~ .square:nth-child(-2n+31),
+	.square:nth-child(32) ~ .square:nth-child(-2n+40),
+	.square:nth-child(40) ~ .square:nth-child(-2n+47),
+	.square:nth-child(48) ~ .square:nth-child(-2n+56),
+	.square:nth-child(56) ~ .square:nth-child(-2n+63) {
+    background-color: #a8956d;
+}
+
+	.square:hover {
+		box-shadow: 0 0 10px #fff187;
+		border: 2px solid #fff187;
+	}
+	
+.selected {
+	box-shadow: 0 0 10px #82b1ff;
+	border: 2px solid #82b1ff;
+}
+
+.highlighted {
+	box-shadow: 0 0 10px #8effc5;
+	border: 2px solid #8effc5;
+}
+
+.words {
+	color:white;
+}
+
+.white-king:before {
+    content: "\2654";
+}
+
+.white-queen:before {
+    content: "\2655";
+}
+
+.white-rook:before {
+    content: "\2656";
+}
+
+.white-bishop:before {
+    content: "\2657";
+}
+
+.white-knight:before {
+    content: "\2658";
+}
+
+.white-pawn:before {
+    content: "\2659";
+}
+
+.black-king:before {
+    content: "\265A";
+}
+
+.black-queen:before {
+    content: "\265B";
+}
+
+.black-rook:before {
+    content: "\265C";
+}
+
+.black-bishop:before {
+    content: "\265D";
+}
+
+.black-knight:before {
+    content: "\265E";
+}
+
+.black-pawn:before {
+    content: "\265F";
+}
+
+.empty {
+	color: transparent !important;
+}
+	.empty:before {
+		content: "\0000";
+	}
