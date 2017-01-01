@@ -4,23 +4,37 @@ body{
 }
 
 .board{
-	height: 450px;
-	width: 450px;
+	/*height: 450px;
+	width: 450px;*/
+	/*height: 90%;
+	width: 90%;*/
+	
+	min-height: 96vh;
+	width: 96vh;
+	display: -webkit-flex;
+	display: flex;
+	-webkit-flex-wrap: wrap;
+	flex-wrap: wrap;
 	margin: auto;
 }
 
 .square {
-	height: 50px;
-	width: 50px;
+	/*height: 50px;
+	width: 50px;*/
+	/*height: 12%;
+	width: 12%;*/
+	
+min-height: 12vh;
+width: 12vh;
 	text-align: center;
 	display: inline-block;
 	background-color: #f2dfb5;
 	border-radius: 7px;
 	border: 2px solid black;
-	margin: 1px;
+	margin: 0px;
 	
-	line-height: 50px;
-	font-size: 3em;
+	line-height: 12vh;
+	font-size: 8vh;
 }
 	.square:nth-child(-2n+8), 
 	.square:nth-child(8) ~ .square:nth-child(-2n+15), 

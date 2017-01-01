@@ -1,5 +1,36 @@
 (function(window, document, $, undefined){
 	
+	function Square(id, piece) {
+		this.id = id;
+		this.piece = piece;
+		this.getRow = function () {
+			return this.id.split('')[2];
+		};
+		this.getCol = function () {
+			return this.getRowNumber(this.id.split('')[1]); 
+		}
+		this.getRowNumber = function(rowLetter) {
+			switch(rowLetter){
+				case 'a':
+					return 1;
+				case 'b':
+					return 2;
+				case 'c':
+					return 3;
+				case 'd':
+					return 4;
+				case 'e':
+					return 5;
+				case 'f':
+					return 6;
+				case 'g':
+					return 7;
+				case 'h':
+					return 8;
+			}
+		}
+	}
+	
 	function initBoard() {
 		$(".square").toggleClass("empty");
 		$("#a1, #h1").toggleClass("white-rook empty");
@@ -20,11 +51,16 @@
 		return titleCase(classValue
 		.replace('square','')
 		.replace('selected','')
+		.replace('highlighted','')
 		.replace('-',' ')
 		.trim());
 	}
 	
-	function highlightValidMoves(thisSquare){
+	function highlightValidMoves(thisSquare) {
+		
+	}
+	
+	function checkSquare(thisSquare){
 		var colorPiece,
 		color,
 		piece,
@@ -43,14 +79,14 @@
 			
 			color = colorPiece.split(' ')[0];
 			piece = colorPiece.split(' ')[1];
-			
+			/*
 			$(".colorMessage").text(function(){
 				return color;
 			});
 			$(".pieceMessage").text(function(){
 				return piece;
 			});
-			
+			*/
 			switch(color){
 				case 'White':
 					multiplier = 1;
@@ -65,18 +101,19 @@
 					for(var i = 1; i <= 2; i++){
 						validSpaces.push('' + col + (parseInt(row) + (i * multiplier)));
 					}
+					/*
 					$(".validSpacesMessage").text(function(){
 						return validSpaces;
-					});
+					});*/
 					validSpaces.forEach(function (value) {
 						$('#' + value).toggleClass("highlighted");
 					});
 					break;
 				}
 				default:
-					$(".validSpacesMessage").text(function(){
+					/*$(".validSpacesMessage").text(function(){
 						return '';
-					});
+					});*/
 					break;
 			}
 		}
@@ -117,17 +154,6 @@
 		initBoard();
 		
 		$(".square")
-		.mouseover( function() {
-			var that = this;
-			$(".highlightedMessage").text(function(){
-				return '[' + $(that).attr('id') + '] (' + getPieceClass($(that).attr('class')) + ')';
-			})
-		})
-		.mouseout( function() {
-			$(".highlightedMessage").text(function(){
-				return '';
-			})
-		})
 		.click( function() {
 			var that = this;
 			
@@ -139,7 +165,7 @@
 			toggleSelectedMessage(that);
 			
 			// Calculate Moves
-			highlightValidMoves(that);
+			checkSquare(that);
 		});
 	});
 	
