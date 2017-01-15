@@ -1,14 +1,12 @@
 (function(window, document, $, undefined){
     var moves,
+        killMoves,
+        validMoves,
         turn,
         selectedPiece,
         selectedSquare,
         selectedCol,
         selectedRow;
-
-    function Move() {
-
-    }
 
 	function initBoard() {
 		$(".square").toggleClass("empty");
@@ -28,8 +26,8 @@
 
 	function testBoard() {
 	    $(".square").toggleClass("empty");
-	    $("#d5").toggleClass("white-knight empty");
-	    $("#e4").toggleClass("black-knight empty");
+	    $("#d5").toggleClass("white-bishop selectable empty");
+	    $("#e4").toggleClass("black-rook empty");
     }
 
 	function getPieceClass(classValue) {
@@ -81,175 +79,219 @@
 	function inBounds(value) {
 	    return (value > 0 && value < 9);
 	}
-
-	function straight(col, row, limit) {
-	    var tC, tR, lim, validSpaces;
-	    validSpaces = [];
-	    tC = col;
-	    tR = row;
-	    lim = 0;
-	    while (inBounds(tC) && lim <= limit) {
-	        validSpaces.push('' + translate(tC) + tR);
-	        tC++;
-	        lim++;
+    
+    //Default friendly
+	function hasPiece(thisSquare, myColor) {
+	    if (myColor == "black") {
+	        return ($(thisSquare).hasClass('black-pawn') || 
+                $(thisSquare).hasClass('black-rook') || 
+                $(thisSquare).hasClass('black-knight') || 
+                $(thisSquare).hasClass('black-bishop') || 
+                $(thisSquare).hasClass('black-queen') ||
+                $(thisSquare).hasClass('black-king'));
+	    } else {
+	        return ($(thisSquare).hasClass('white-pawn') ||
+                $(thisSquare).hasClass('white-rook') ||
+                $(thisSquare).hasClass('white-knight') ||
+                $(thisSquare).hasClass('white-bishop') ||
+                $(thisSquare).hasClass('white-queen') ||
+                $(thisSquare).hasClass('white-king'));
 	    }
-	    tC = col;
-	    tR = row;
-	    lim = 0;
-	    while (inBounds(tC) && lim <= limit) {
-	        validSpaces.push('' + translate(tC) + tR);
-	        tC--;
-	        lim++;
-	    }
-	    tC = col;
-	    tR = row;
-	    lim = 0;
-	    while (inBounds(tR) && lim <= limit) {
-	        validSpaces.push('' + translate(tC) + tR);
-	        tR++;
-	        lim++;
-	    }
-	    tC = col;
-	    tR = row;
-	    lim = 0;
-	    while (inBounds(tR) && lim <= limit) {
-	        validSpaces.push('' + translate(tC) + tR);
-	        tR--;
-	        lim++;
-	    }
-	    return validSpaces;
 	}
 
-	function diagonal(col, row, limit) {
-	    var tC, tR, lim, validSpaces;
+	function straight(col, row, color, limit) {
+	    var tC, tR, lim, friendly, enemy;
 
-	    validSpaces = [];
-	    tC = col;
+	    row = parseInt(row);
+	    lim = 1;
+	    friendly = color;
+	    enemy = friendly == "white" ? "black" : "white";
+
+	    tC = col + 1;
 	    tR = row;
-	    lim = 0;
-	    while (inBounds(tC) && inBounds(tR) && lim <= limit) {
-	        validSpaces.push('' + translate(tC) + tR);
+	    while (inBounds(tC) && lim <= limit) {
+	        if (checkMove(tC, tR, friendly, enemy)) { break; }
 	        tC++;
+	        lim++;
+	    }
+	    tC = col - 1;
+	    tR = row;
+	    lim = 1;
+	    while (inBounds(tC) && lim <= limit) {
+	        if (checkMove(tC, tR, friendly, enemy)) { break; }
+	        tC--;
+	        lim++;
+	    }
+	    tC = col;
+	    tR = row + 1;
+	    lim = 1;
+	    while (inBounds(tR) && lim <= limit) {
+	        if (checkMove(tC, tR, friendly, enemy)) { break; }
 	        tR++;
 	        lim++;
 	    }
 	    tC = col;
-	    tR = row;
-	    lim = 0;
+	    tR = row - 1;
+	    lim = 1;
+	    while (inBounds(tR) && lim <= limit) {
+	        if (checkMove(tC, tR, friendly, enemy)) { break; }
+	        tR--;
+	        lim++;
+	    }
+	}
+
+	function diagonal(col, row, color, limit) {
+	    var tC, tR, lim, friendly, enemy;
+
+	    row = parseInt(row);
+	    tC = col + 1;
+	    tR = row + 1;
+	    lim = 1;
+	    friendly = color;
+	    enemy = friendly == "white" ? "black" : "white";
+
 	    while (inBounds(tC) && inBounds(tR) && lim <= limit) {
-	        validSpaces.push('' + translate(tC) + tR);
+	        if (checkMove(tC, tR, friendly, enemy)) { break; }
+	        tC++;
+	        tR++;
+	        lim++;
+	    }
+	    tC = col - 1;
+	    tR = row - 1;
+	    lim = 1;
+	    while (inBounds(tC) && inBounds(tR) && lim <= limit) {
+	        if (checkMove(tC, tR, friendly, enemy)) { break; }
 	        tC--;
 	        tR--;
 	        lim++;
 	    }
-	    tC = col;
-	    tR = row;
-	    lim = 0;
+	    tC = col + 1;
+	    tR = row - 1;
+	    lim = 1;
 	    while (inBounds(tC) && inBounds(tR) && lim <= limit) {
-	        validSpaces.push('' + translate(tC) + tR);
+	        if (checkMove(tC, tR, friendly, enemy)) { break; }
 	        tC++;
 	        tR--;
 	        lim++;
 	    }
-	    tC = col;
-	    tR = row;
-	    lim = 0;
+	    tC = col - 1;
+	    tR = row + 1;
+	    lim = 1;
 	    while (inBounds(tC) && inBounds(tR) && lim <= limit) {
-	        validSpaces.push('' + translate(tC) + tR);
+	        if (checkMove(tC, tR, friendly, enemy)) { break; }
 	        tC--;
 	        tR++;
 	        lim++;
 	    }
-	    return validSpaces;
 	}
 	
 	function pawn(col, row, color) {
-	    // If at starting rank, allow 2. Otherwise 1.
+	    var limit, multiplier, friendly, enemy, i;
 
-	    var limit, multiplier, validSpaces;
-	    validSpaces = [];
-
+	    friendly = color;
+	    row = parseInt(row);
+	    i = 1;
 	    limit = ((color == 'black' && row == 7) || (color == 'white' && row == 2)) ? 2 : 1;
 	    switch (color) {
 	        case 'white':
 	            multiplier = 1;
+	            enemy = "black";
 	            break;
 	        default:
 	            multiplier = -1;
+	            enemy = "white";
 	            break;
 	    }
-	    for (var i = 1; i <= limit; i++) {
-	        var newRow = (parseInt(row) + (i * multiplier));
+
+	    while (i <= limit) {
+	        var newRow, hasFriendly, hasEnemy;
+
+            newRow = (row + (i * multiplier));
+            
+            hasFriendly = hasPiece($('#' + translate(col) + newRow), friendly);
+            hasEnemy = hasPiece($('#' + translate(col) + newRow), enemy);
+
+
+            if (hasFriendly || hasEnemy) {
+	            break;
+	        }
 	        if (inBounds(newRow)) {
-	            validSpaces.push('' + translate(col) + newRow);
+	            validMoves.push('' + translate(col) + newRow);
+	        }
+            i++
+	    }
+
+	    if (inBounds(row + multiplier) && inBounds(col + 1) && hasPiece($('#' + translate(col + 1) + (row + multiplier)), enemy)) {
+	        killMoves.push(translate(col + 1) + (row + multiplier));
+	    }
+	    if (inBounds(row + multiplier) && inBounds(col - 1) && hasPiece($('#' + translate(col - 1) + (row + multiplier)), enemy)) {
+	        killMoves.push(translate(col - 1) + (row + multiplier));
+	    }
+	    
+	}
+
+	function checkMove(tC, tR, friendly, enemy) {
+	    var hasFriendly, hasEnemy;
+
+	    hasFriendly = hasPiece($('#' + translate(tC) + tR), friendly);
+	    hasEnemy = hasPiece($('#' + translate(tC) + tR), enemy);
+
+	    if (inBounds(tC) && inBounds(tR)) {
+            
+	        if (!hasFriendly && !hasEnemy) {
+	            validMoves.push('' + translate(tC) + tR);
+	            return false;
+	        }
+	        if (hasEnemy) {
+	            killMoves.push('' + translate(tC) + tR);
+	            return true;
+	        }
+	        if (hasFriendly) {
+	            return true;
 	        }
 	    }
-
-	    return validSpaces;
-	    // Enemy check needed...
 	}
 
-	function knight(col, row) {
-	    var tC, tR, validSpaces;
+	function knight(col, row, color) {
+	    var friendly, enemy;
 
-	    validSpaces = [];
 	    row = parseInt(row);
-	    tC = col + 2;
-	    tR = row + 1;
-	    if (inBounds(tC) && inBounds(tR)) {
-	        validSpaces.push('' + translate(tC) + tR);
-	    }
-	    tC = col + 1;
-	    tR = row + 2;
-	    if (inBounds(tC) && inBounds(tR)) {
-	        validSpaces.push('' + translate(tC) + tR);
-	    }
-	    tC = col + 2;
-	    tR = row - 1;
-	    if (inBounds(tC) && inBounds(tR)) {
-	        validSpaces.push('' + translate(tC) + tR);
-	    }
-	    tC = col + 1;
-	    tR = row - 2;
-	    if (inBounds(tC) && inBounds(tR)) {
-	        validSpaces.push('' + translate(tC) + tR);
-	    }
-	    tC = col - 2;
-	    tR = row + 1;
-	    if (inBounds(tC) && inBounds(tR)) {
-	        validSpaces.push('' + translate(tC) + tR);
-	    }
-	    tC = col - 1;
-	    tR = row + 2;
-	    if (inBounds(tC) && inBounds(tR)) {
-	        validSpaces.push('' + translate(tC) + tR);
-	    }
-	    tC = col - 2;
-	    tR = row - 1;
-	    if (inBounds(tC) && inBounds(tR)) {
-	        validSpaces.push('' + translate(tC) + tR);
-	    }
-	    tC = col - 1;
-	    tR = row - 2;
-	    if (inBounds(tC) && inBounds(tR)) {
-	        validSpaces.push('' + translate(tC) + tR);
-	    }
-	    return validSpaces;
-	}
+	    friendly = color;
+	    enemy = friendly == "white" ? "black" : "white";
+
+	    checkMove(col + 2, row + 1, friendly, enemy);
+	    checkMove(col + 1, row + 2, friendly, enemy);
+	    checkMove(col + 2, row - 1, friendly, enemy);
+	    checkMove(col + 1, row - 2, friendly, enemy);
+	    checkMove(col - 2, row + 1, friendly, enemy);
+	    checkMove(col - 1, row + 2, friendly, enemy);
+	    checkMove(col - 2, row - 1, friendly, enemy);
+	    checkMove(col - 1, row - 2, friendly, enemy);
+    }
 
 	function removePieces(thisSquare) {
 	    $(thisSquare).removeClass("white-pawn white-rook white-knight white-bishop white-queen white-king black-pawn black-rook black-knight black-bishop black-queen black-king");
 	}
 
 	function movePiece(piece, oldCol, oldRow, newCol, newRow) {
+	    var newSquare = $('#' + translate(newCol) + newRow);
 	    removePieces($('#' + selectedSquare));
-	    $('#' + translate(newCol) + newRow).toggleClass("empty highlighted selected " + selectedPiece);
+	    removePieces(newSquare);
+	    newSquare.removeClass("empty highlighted selected").addClass(selectedPiece);
+	    $('.square').removeClass("highlighted selectable killable selected");
 	    changeTurns();
         // Add logging...
 	}
 
 	function changeTurns() {
-	    $('.white-pawn, .white-rook, .white-knight, .white-bishop, .white-queen, .white-king, .black-pawn, .black-rook, .black-knight, .black-bishop, .black-queen, .black-king').toggleClass('selectable');
+	    turn = turn * -1;
+	    $('.square').removeClass('selectable');
+	    if (turn > 0) {
+	        $('.white-pawn, .white-rook, .white-knight, .white-bishop, .white-queen, .white-king').addClass('selectable');
+	    }
+	    else {
+	        $('.black-pawn, .black-rook, .black-knight, .black-bishop, .black-queen, .black-king').addClass('selectable');
+	    }
 	}
 
 	function checkSquare(thisSquare){
@@ -258,9 +300,10 @@
 		piece,
 		square,
 		col,
-		row,
-		validSpaces;
+		row;
 		
+		validMoves = [];
+		killMoves = [];
 		colorPiece = getPieceClass($(thisSquare).attr('class')).replace('empty','');
 		square = $(thisSquare).attr('id');
 
@@ -275,43 +318,46 @@
 		    selectedSquare = square;
 		    selectedCol = col;
             selectedRow = row;
-			validSpaces = [];
 			
 			color = colorPiece.split('-')[0];
 			piece = colorPiece.split('-')[1];
 
+			$('.empty').removeClass("selectable");
 			switch(piece){
 			    case 'pawn': {
-			        validSpaces = pawn(col, row, color);
+			        pawn(col, row, color);
 					break;
 				}
 			    case 'knight': {
-			        validSpaces = knight(col, row);
+			        knight(col, row, color);
 			        break;
 			    }
 			    case 'rook': {
-			        validSpaces = straight(col, row, 8);
+			        straight(col, row, color, 8);
 			        break;
 			    }
 			    case 'bishop': {
-			        validSpaces = diagonal(col, row, 8);
+			        diagonal(col, row, color, 8);
 			        break;
 			    }
 			    case 'queen': {
-			        validSpaces = straight(col, row, 8).concat(diagonal(col, row, 8));
+			        straight(col, row, color, 8);
+			        diagonal(col, row, color, 8);
 			        break;
 			    }
 			    case 'king': {
-			        validSpaces = straight(col, row, 1).concat(diagonal(col, row, 1));
+			        straight(col, row, color, 1);
+			        diagonal(col, row, color, 1);
 			        break;
 			    }
 			    default:
 					break;
 			}
-		    // Highlight valid moves
-			validSpaces.forEach(function (value) {
-			    //Check for frienemies here?
-			    $('#' + value).not(square).toggleClass("highlighted selectable");
+			validMoves.forEach(function (value) {
+			    $('#' + value).not(square).addClass("highlighted selectable");
+			});
+			killMoves.forEach(function (value) {
+			    $('#' + value).not(square).addClass("killable");
 			});
 		}       
 	}
@@ -326,34 +372,29 @@
 		return str.join(' ');
 	}
 
-	function toggleSelectedMessage(square) {
-		if($(square).hasClass('selected')){			
-			$(".selectedMessage").text(function(){
-				return '[' + $(square).attr('id') + '] (' + getPieceClass($(square).attr('class')) + ')';
-			});
-		}else{
-			$(".selectedMessage").text(function(){
-				return '';
-			});
-		}
-	}
+	//function toggleSelectedMessage(square) {
+	//	if($(square).hasClass('selected')){			
+	//		$(".selectedMessage").text(function(){
+	//			return '[' + $(square).attr('id') + '] (' + getPieceClass($(square).attr('class')) + ')';
+	//		});
+	//	}else{
+	//		$(".selectedMessage").text(function(){
+	//			return '';
+	//		});
+	//	}
+	//}
 	
 	$(document).ready(function () {
 
 		initBoard();
 		moves = [];
+		validMoves = [];
+		killMoves = [];
         // 1 = white, -1 = black.
 		turn = 1;
+
 		//testBoard();
 
-	    //Need a way to track moves, White is first, so a counter starting at 1,
-	    //Odd values are white moves, Even black...
-        //Only playable spaces should be clickable.
-
-	    /*
-        Legacy stuff here, allows anyone to move anything at any time... 
-        we need to be able to toggle the selectability
-        */
 		$(".square")
 		.click( function() {
 		    var that,
@@ -362,15 +403,16 @@
 
 		    that = this;
 		    highlighted = $(that).hasClass("highlighted");
-
+		    killable = $(that).hasClass("killable");
+		    //$(".square").removeClass("killable");
 		    if ($(that).hasClass("selectable")) {
-			    $(".square").not(that).removeClass("selected").removeClass("highlighted");
+		        $(".square").not(that).removeClass("selected").removeClass("highlighted").removeClass("killable");
 			    $(that).toggleClass("selected");
-			    toggleSelectedMessage(that);
+			    //toggleSelectedMessage(that);
 			    checkSquare(that);
 			}
 
-			if (highlighted) {
+			if (highlighted || killable) {
 			    var nC, nR;
 			    nC = translate($(that).attr('id').split('')[0]);
 			    nR = parseInt($(that).attr('id').split('')[1]);

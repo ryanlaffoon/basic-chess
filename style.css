@@ -13,8 +13,9 @@ body{
 }
 
 .square {
-min-height: 12vh;
-width: 12vh;
+    opacity: 0.75;
+    min-height: 12vh;
+    width: 12vh;
 	text-align: center;
 	display: inline-block;
 	background-color: #f2dfb5;
@@ -46,9 +47,18 @@ width: 12vh;
 	border: 2px solid #82b1ff;
 }
 
+.selectable, .killable {
+    opacity: 1;
+}
+
 .highlighted {
 	box-shadow: 0 0 10px #8effc5;
 	border: 2px solid #8effc5;
+}
+
+.killable {
+	box-shadow: 0 0 10px #c60d00;
+	border: 2px solid #c60d00;
 }
 
 .words {
