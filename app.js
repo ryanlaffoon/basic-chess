@@ -1,5 +1,6 @@
 (function(window, document, $, undefined){
     var moves,
+        captured,
         killMoves,
         validMoves,
         turn,
@@ -36,6 +37,7 @@
 		.replace('selected','')
 		.replace('highlighted', '')
         .replace('selectable', '')
+        .replace('killable', '')
 		.trim());
 	}
 	
@@ -80,23 +82,13 @@
 	    return (value > 0 && value < 9);
 	}
     
-    //Default friendly
-	function hasPiece(thisSquare, myColor) {
-	    if (myColor == "black") {
-	        return ($(thisSquare).hasClass('black-pawn') || 
-                $(thisSquare).hasClass('black-rook') || 
-                $(thisSquare).hasClass('black-knight') || 
-                $(thisSquare).hasClass('black-bishop') || 
-                $(thisSquare).hasClass('black-queen') ||
-                $(thisSquare).hasClass('black-king'));
-	    } else {
-	        return ($(thisSquare).hasClass('white-pawn') ||
-                $(thisSquare).hasClass('white-rook') ||
-                $(thisSquare).hasClass('white-knight') ||
-                $(thisSquare).hasClass('white-bishop') ||
-                $(thisSquare).hasClass('white-queen') ||
-                $(thisSquare).hasClass('white-king'));
-	    }
+	function hasPiece(thisSquare, color) {
+	    return ($(thisSquare).hasClass(color + '-pawn') ||
+            $(thisSquare).hasClass(color + '-rook') ||
+            $(thisSquare).hasClass(color + '-knight') ||
+            $(thisSquare).hasClass(color + '-bishop') ||
+            $(thisSquare).hasClass(color + '-queen') ||
+            $(thisSquare).hasClass(color + '-king'));
 	}
 
 	function straight(col, row, color, limit) {
@@ -105,7 +97,7 @@
 	    row = parseInt(row);
 	    lim = 1;
 	    friendly = color;
-	    enemy = friendly == "white" ? "black" : "white";
+	    enemy = getEnemyColor(friendly);
 
 	    tC = col + 1;
 	    tR = row;
@@ -148,7 +140,7 @@
 	    tR = row + 1;
 	    lim = 1;
 	    friendly = color;
-	    enemy = friendly == "white" ? "black" : "white";
+	    enemy = getEnemyColor(friendly);
 
 	    while (inBounds(tC) && inBounds(tR) && lim <= limit) {
 	        if (checkMove(tC, tR, friendly, enemy)) { break; }
@@ -187,37 +179,24 @@
 	
 	function pawn(col, row, color) {
 	    var limit, multiplier, friendly, enemy, i;
-
-	    friendly = color;
 	    row = parseInt(row);
 	    i = 1;
-	    limit = ((color == 'black' && row == 7) || (color == 'white' && row == 2)) ? 2 : 1;
-	    switch (color) {
-	        case 'white':
-	            multiplier = 1;
-	            enemy = "black";
-	            break;
-	        default:
-	            multiplier = -1;
-	            enemy = "white";
-	            break;
-	    }
+	    friendly = color;
+	    enemy = getEnemyColor(friendly);
+	    multiplier = friendly == "white" ? 1 : -1;
+	    limit = ((friendly == 'black' && row == 7) || (friendly == 'white' && row == 2)) ? 2 : 1;
 
 	    while (i <= limit) {
 	        var newRow, hasFriendly, hasEnemy;
 
-            newRow = (row + (i * multiplier));
-            
+	        newRow = (row + (i * multiplier));
             hasFriendly = hasPiece($('#' + translate(col) + newRow), friendly);
             hasEnemy = hasPiece($('#' + translate(col) + newRow), enemy);
 
-
-            if (hasFriendly || hasEnemy) {
+            if (hasFriendly || hasEnemy || !inBounds(newRow)) {
 	            break;
 	        }
-	        if (inBounds(newRow)) {
-	            validMoves.push('' + translate(col) + newRow);
-	        }
+	        validMoves.push('' + translate(col) + newRow);
             i++
 	    }
 
@@ -227,7 +206,23 @@
 	    if (inBounds(row + multiplier) && inBounds(col - 1) && hasPiece($('#' + translate(col - 1) + (row + multiplier)), enemy)) {
 	        killMoves.push(translate(col - 1) + (row + multiplier));
 	    }
-	    
+	}
+
+	function knight(col, row, color) {
+	    var friendly, enemy;
+
+	    row = parseInt(row);
+	    friendly = color;
+	    enemy = getEnemyColor(friendly);
+
+	    checkMove(col + 2, row + 1, friendly, enemy);
+	    checkMove(col + 1, row + 2, friendly, enemy);
+	    checkMove(col + 2, row - 1, friendly, enemy);
+	    checkMove(col + 1, row - 2, friendly, enemy);
+	    checkMove(col - 2, row + 1, friendly, enemy);
+	    checkMove(col - 1, row + 2, friendly, enemy);
+	    checkMove(col - 2, row - 1, friendly, enemy);
+	    checkMove(col - 1, row - 2, friendly, enemy);
 	}
 
 	function checkMove(tC, tR, friendly, enemy) {
@@ -252,35 +247,34 @@
 	    }
 	}
 
-	function knight(col, row, color) {
-	    var friendly, enemy;
-
-	    row = parseInt(row);
-	    friendly = color;
-	    enemy = friendly == "white" ? "black" : "white";
-
-	    checkMove(col + 2, row + 1, friendly, enemy);
-	    checkMove(col + 1, row + 2, friendly, enemy);
-	    checkMove(col + 2, row - 1, friendly, enemy);
-	    checkMove(col + 1, row - 2, friendly, enemy);
-	    checkMove(col - 2, row + 1, friendly, enemy);
-	    checkMove(col - 1, row + 2, friendly, enemy);
-	    checkMove(col - 2, row - 1, friendly, enemy);
-	    checkMove(col - 1, row - 2, friendly, enemy);
-    }
-
 	function removePieces(thisSquare) {
 	    $(thisSquare).removeClass("white-pawn white-rook white-knight white-bishop white-queen white-king black-pawn black-rook black-knight black-bishop black-queen black-king");
 	}
 
+	function getEnemyColor(friendly){
+	    return friendly == "white" ? "black" : "white";
+	}
+
 	function movePiece(piece, oldCol, oldRow, newCol, newRow) {
-	    var newSquare = $('#' + translate(newCol) + newRow);
+	    var friendly, enemy, newSquare, capturePiece, hasEnemy;
+	    newSquare = $('#' + translate(newCol) + newRow);
+	    friendly = piece.split('-')[0];
+	    enemy = getEnemyColor(friendly);
+
+	    hasEnemy = hasPiece(newSquare, enemy);
+
+	    if (hasEnemy) {
+	        capturePiece = getPieceClass(newSquare.attr('class'));
+	        captured.push('<span class="' + capturePiece + '"></span>');
+	    }
 	    removePieces($('#' + selectedSquare));
 	    removePieces(newSquare);
 	    newSquare.removeClass("empty highlighted selected").addClass(selectedPiece);
 	    $('.square').removeClass("highlighted selectable killable selected");
+	    moves.push('<div><span class="' + piece + '"></span> ' + translate(oldCol) + oldRow + ' ' + translate(newCol) + newRow + '</div>');
+
 	    changeTurns();
-        // Add logging...
+	    updateMessage();
 	}
 
 	function changeTurns() {
@@ -307,10 +301,7 @@
 		colorPiece = getPieceClass($(thisSquare).attr('class')).replace('empty','');
 		square = $(thisSquare).attr('id');
 
-        // Columns are Alpha, Translate for easy movement.
 		col = translate(square.split('')[0]);
-
-        // Row is always numeric
 		row = square.split('')[1];
 
 		if (colorPiece) {
@@ -372,28 +363,19 @@
 		return str.join(' ');
 	}
 
-	//function toggleSelectedMessage(square) {
-	//	if($(square).hasClass('selected')){			
-	//		$(".selectedMessage").text(function(){
-	//			return '[' + $(square).attr('id') + '] (' + getPieceClass($(square).attr('class')) + ')';
-	//		});
-	//	}else{
-	//		$(".selectedMessage").text(function(){
-	//			return '';
-	//		});
-	//	}
-	//}
+	function updateMessage() {
+	    $('.moves').html(moves);
+	    $('.captured').html(captured);
+	}
 	
 	$(document).ready(function () {
-
 		initBoard();
 		moves = [];
+		captured = [];
 		validMoves = [];
 		killMoves = [];
         // 1 = white, -1 = black.
 		turn = 1;
-
-		//testBoard();
 
 		$(".square")
 		.click( function() {
@@ -404,11 +386,9 @@
 		    that = this;
 		    highlighted = $(that).hasClass("highlighted");
 		    killable = $(that).hasClass("killable");
-		    //$(".square").removeClass("killable");
 		    if ($(that).hasClass("selectable")) {
 		        $(".square").not(that).removeClass("selected").removeClass("highlighted").removeClass("killable");
 			    $(that).toggleClass("selected");
-			    //toggleSelectedMessage(that);
 			    checkSquare(that);
 			}
 
