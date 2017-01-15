@@ -364,8 +364,8 @@
 	}
 
 	function updateMessage() {
-	    $('.moves').html(moves);
-	    $('.captured').html(captured);
+	    $('.moves').html(moves.reverse());
+	    $('.captured').html(captured.reverse());
 	}
 	
 	$(document).ready(function () {

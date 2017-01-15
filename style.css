@@ -4,8 +4,10 @@ body{
 }
 
 .board{
-	min-height: 96vh;
-	width: 96vh;
+	/*min-height: 96vh;
+	width: 96vh;*/
+    min-height: 72vh;
+	width: 72vh;
 	display: flex;
 	flex-wrap: wrap;
 	margin: auto;
@@ -13,8 +15,8 @@ body{
 
 .square {
     opacity: 0.7;
-    min-height: 12vh;
-    width: 12vh;
+    min-height: 9vh;
+    width: 9vh;
 	text-align: center;
 	display: inline-block;
 	background-color: #f2dfb5;
@@ -22,8 +24,8 @@ body{
 	border: 2px solid black;
 	margin: 0px;
 	
-	line-height: 12vh;
-	font-size: 8vh;
+	line-height: 9vh;
+	font-size: 7vh;
 }
 	.square:nth-child(-2n+8), 
 	.square:nth-child(8) ~ .square:nth-child(-2n+15), 
@@ -69,6 +71,8 @@ body{
     position: absolute;
     top: 0;
     left: 0;
+    height: 50vw;
+    overflow: scroll;
 }
 .captured {
     color: white;
