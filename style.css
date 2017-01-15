@@ -1,6 +1,7 @@
 
 body{
 	background-color: black;
+    overflow:hidden;
 }
 
 .board{
@@ -70,9 +71,10 @@ body{
     width: 20vw;
     position: absolute;
     top: 0;
-    left: 0;
     height: 50vw;
-    overflow: scroll;
+    right: -17px;
+    overflow-y: scroll;
+    font-size: 3vw;
 }
 .captured {
     color: white;
@@ -82,9 +84,8 @@ body{
     width: 20vw;
     position: absolute;
     top: 0;
-    right: 0;
-    text-align:right;
-    font-size: 6vw;
+    left: 0;
+    font-size: 5vw;
     word-wrap:break-word;
 }
 
