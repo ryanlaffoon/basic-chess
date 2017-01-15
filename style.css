@@ -4,14 +4,8 @@ body{
 }
 
 .board{
-	/*height: 450px;
-	width: 450px;*/
-	/*height: 90%;
-	width: 90%;*/
-	
 	min-height: 96vh;
 	width: 96vh;
-	display: -webkit-flex;
 	display: flex;
 	-webkit-flex-wrap: wrap;
 	flex-wrap: wrap;
@@ -19,11 +13,6 @@ body{
 }
 
 .square {
-	/*height: 50px;
-	width: 50px;*/
-	/*height: 12%;
-	width: 12%;*/
-	
 min-height: 12vh;
 width: 12vh;
 	text-align: center;
@@ -64,59 +53,48 @@ width: 12vh;
 
 .words {
 	color:white;
+    float:left;
 }
 
 .white-king:before {
     content: "\2654";
 }
-
 .white-queen:before {
     content: "\2655";
 }
-
 .white-rook:before {
     content: "\2656";
 }
-
 .white-bishop:before {
     content: "\2657";
 }
-
 .white-knight:before {
     content: "\2658";
 }
-
 .white-pawn:before {
     content: "\2659";
 }
-
 .black-king:before {
     content: "\265A";
 }
-
 .black-queen:before {
     content: "\265B";
 }
-
 .black-rook:before {
     content: "\265C";
 }
-
 .black-bishop:before {
     content: "\265D";
 }
-
 .black-knight:before {
     content: "\265E";
 }
-
 .black-pawn:before {
     content: "\265F";
 }
-
 .empty {
 	color: transparent !important;
 }
-	.empty:before {
-		content: "\0000";
-	}
+.empty:before {
+	content: "\0000";
+}
