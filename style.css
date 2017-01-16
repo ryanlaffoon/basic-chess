@@ -7,6 +7,7 @@ body{
 .board{
 	/*min-height: 96vh;
 	width: 96vh;*/
+    margin-top: 10px;
     min-height: 72vh;
 	width: 72vh;
 	display: flex;
@@ -20,7 +21,7 @@ body{
     width: 9vh;
 	text-align: center;
 	display: inline-block;
-	background-color: #f2dfb5;
+	background-color: #f7f0cf;
 	border-radius: 7px;
 	border: 2px solid black;
 	margin: 0px;
@@ -36,7 +37,7 @@ body{
 	.square:nth-child(40) ~ .square:nth-child(-2n+47),
 	.square:nth-child(48) ~ .square:nth-child(-2n+56),
 	.square:nth-child(56) ~ .square:nth-child(-2n+63) {
-    background-color: #a8956d;
+    background-color: #d1c698;
 }
 
 	.square:hover {
@@ -44,9 +45,16 @@ body{
 		border: 2px solid #fff187;
 	}
 	
+
+
+.selectable{
+    box-shadow: 0 0 2px #82b1ff;
+    border: 2px solid #82b1ff;
+}
+
 .selected {
-	box-shadow: 0 0 10px #82b1ff;
-	border: 2px solid #82b1ff;
+	box-shadow: 0 0 10px #fff187;
+	border: 2px solid #fff187;
 }
 
 .selectable, .killable {
@@ -63,18 +71,28 @@ body{
 	border: 2px solid #c60d00;
 }
 
-.moves {
+.info{
     color: white;
+}
+
+.moves {
     margin-top: 10px;
     margin-left: 10px;
     display: block;
     width: 20vw;
     position: absolute;
     top: 0;
-    height: 50vw;
     right: -17px;
+    
+}
+.moves-list {
+    display: block;
+    height: 50vw;
+    width: 20vw;
+    position: absolute;
     overflow-y: scroll;
-    font-size: 3vw;
+    font-size: 2vw;
+
 }
 .captured {
     color: white;
@@ -85,7 +103,19 @@ body{
     position: absolute;
     top: 0;
     left: 0;
-    font-size: 5vw;
+    font-size: 2vw;
+    word-wrap:break-word;
+    text-align:right;
+}
+.captured-list {
+    color: white;
+    margin-top: 10px;
+    margin-right: 10px;
+    display:  inline-block;
+    width: 20vw;
+    top: 0;
+    left: 0;
+    font-size: 3vw;
     word-wrap:break-word;
 }
 
