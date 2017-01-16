@@ -6,7 +6,7 @@ Hosted at [http://ryanlaffoon.github.io/basic-chess/](http://ryanlaffoon.github.
 
 Best viewed in landscape mode, if mobile.
 
-Still a work in progress.
+_Still a work in progress._
 
 [How to play](https://www.chess.com/learn-how-to-play-chess)
 
