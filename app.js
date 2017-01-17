@@ -1,5 +1,6 @@
 (function(window, document, $, undefined){
-    var moves,
+    var mode,
+        moves,
         moveNumber,
         captured,
         killMoves,
@@ -9,49 +10,76 @@
         selectedSquare,
         selectedCol,
         selectedRow,
-        animateDuration;
+        newSquare;
 
     function initBoard() {
+        mode = "standard";
         moves = [];
         captured = [];
         validMoves = [];
         killMoves = [];
         moveNumber = 1;
-        animateDuration = 0;
+
+        $('#standard').parent().addClass("active");
+        $('#pawns').parent().removeClass("active");
+
+
         removePieces($(".square"));
-		$(".square").toggleClass("empty");
-		$("#a1, #h1").toggleClass("white-rook selectable empty");
-		$("#b1, #g1").toggleClass("white-knight selectable empty");
-		$("#c1, #f1").toggleClass("white-bishop selectable empty");
-		$("#d1").toggleClass("white-king selectable empty");
-		$("#e1").toggleClass("white-queen selectable empty");
-		$("#a2, #b2, #c2, #d2, #e2, #f2, #g2, #h2").toggleClass("white-pawn selectable empty");
-		$("#a8, #h8").toggleClass("black-rook empty");
-		$("#b8, #g8").toggleClass("black-knight empty");
-		$("#c8, #f8").toggleClass("black-bishop empty");
-		$("#d8").toggleClass("black-king empty");
-		$("#e8").toggleClass("black-queen empty");
-		$("#a7, #b7, #c7, #d7, #e7, #f7, #g7, #h7").toggleClass("black-pawn empty");
+        clearSelection($(".square"));
+		$(".square").addClass("empty");
+		$("#a1, #h1").removeClass("empty").addClass("white-rook selectable");
+		$("#b1, #g1").removeClass("empty").addClass("white-knight selectable");
+		$("#c1, #f1").removeClass("empty").addClass("white-bishop selectable");
+		$("#d1").removeClass("empty").addClass("white-king selectable");
+		$("#e1").removeClass("empty").addClass("white-queen selectable");
+		$("#a2, #b2, #c2, #d2, #e2, #f2, #g2, #h2").removeClass("empty").addClass("white-pawn selectable");
+		$("#a8, #h8").removeClass("empty").addClass("black-rook");
+		$("#b8, #g8").removeClass("empty").addClass("black-knight");
+		$("#c8, #f8").removeClass("empty").addClass("black-bishop");
+		$("#d8").removeClass("empty").addClass("black-king");
+		$("#e8").removeClass("empty").addClass("black-queen");
+		$("#a7, #b7, #c7, #d7, #e7, #f7, #g7, #h7").removeClass("empty").addClass("black-pawn");
         // 1 = white, -1 = black.
 		turn = 1;
 	}
 
-    function fookinPawns() {
+    function pawns() {
+        mode = "pawns";
         moves = [];
         movesDisplay = [];
         captured = [];
         validMoves = [];
         killMoves = [];
         moveNumber = 1;
-        animateDuration = 2;
+
+        $('#standard').parent().removeClass("active");
+        $('#pawns').parent().addClass("active");
+
 	    removePieces($(".square"));
-	    $(".square").toggleClass("empty");
-	    $("#a1, #b1, #c1, #d1, #e1, #f1, #g1, #h1").toggleClass("white-pawn selectable empty");
-	    $("#a2, #b2, #c2, #d2, #e2, #f2, #g2, #h2").toggleClass("white-pawn selectable empty");
-	    $("#a7, #b7, #c7, #d7, #e7, #f7, #g7, #h7").toggleClass("black-pawn empty");
-	    $("#a8, #b8, #c8, #d8, #e8, #f8, #g8, #h8").toggleClass("black-pawn empty");
+	    clearSelection($(".square"));
+	    $(".square").addClass("empty");
+	    $("#a1, #b1, #c1, #d1, #e1, #f1, #g1, #h1").removeClass("empty").addClass("white-pawn selectable");
+	    $("#a2, #b2, #c2, #d2, #e2, #f2, #g2, #h2").removeClass("empty").addClass("white-pawn selectable");
+	    $("#a7, #b7, #c7, #d7, #e7, #f7, #g7, #h7").removeClass("empty").addClass("black-pawn");
+	    $("#a8, #b8, #c8, #d8, #e8, #f8, #g8, #h8").removeClass("empty").addClass("black-pawn");
         // 1 = white, -1 = black.
 	    turn = 1;
+    }
+
+    function testBoard() {
+        moves = [];
+        movesDisplay = [];
+        captured = [];
+        validMoves = [];
+        killMoves = [];
+        moveNumber = 1;
+        removePieces($(".square"));
+        $(".square").toggleClass("empty");
+        $("#c7").toggleClass("white-pawn selectable empty");
+        $("#e2").toggleClass("black-pawn empty");
+        // 1 = white, -1 = black.
+        turn = 1;
+
     }
 
 	function getPieceClass(classValue) {
@@ -61,6 +89,7 @@
 		.replace('highlighted', '')
         .replace('selectable', '')
         .replace('killable', '')
+        .replace('promotionPiece', '')
 		.trim());
 	}
 	
@@ -202,7 +231,6 @@
 	
 	function pawn(col, row, color) {
 	    var limit, multiplier, friendly, enemy, i;
-	    row = parseInt(row);
 	    i = 1;
 	    friendly = color;
 	    enemy = getEnemyColor(friendly);
@@ -271,34 +299,79 @@
 	}
 
 	function removePieces(thisSquare) {
-	    $(thisSquare).removeClass("white-pawn white-rook white-knight white-bishop white-queen white-king black-pawn black-rook black-knight black-bishop black-queen black-king", animateDuration);
+	    $(thisSquare).removeClass("white-pawn white-rook white-knight white-bishop white-queen white-king black-pawn black-rook black-knight black-bishop black-queen black-king");
 	}
 
 	function getEnemyColor(friendly){
 	    return friendly == "white" ? "black" : "white";
 	}
 
-	function movePiece(piece, oldCol, oldRow, newCol, newRow) {
-	    var friendly, enemy, newSquare, capturePiece, hasEnemy;
-	    newSquare = $('#' + translate(newCol) + newRow);
-	    friendly = piece.split('-')[0];
-	    enemy = getEnemyColor(friendly);
+	function pawnPromotion() {
+	    $('.pawnPromotion').removeClass('hidden');
+	    $('.square').removeClass('selectable');
+	}
 
+	function promote(newPiece) {
+	    //removePieces(selectedSquare);
+	    removePieces(newSquare);
+	    newSquare.addClass(newPiece);
+	    $('.pawnPromotion').addClass('hidden');
+	    changeTurns();
+	}
+
+	function castle(kingSpace, rookSpace) {
+	    // To Do
+	    // King must not have moved
+	    // This rook must not have moved
+        // Free spaces between the two
+	}
+
+	function enPassant() {
+        // To Do
+	}
+
+	function getId(thisSquare){
+	    return $(thisSquare).attr('id');
+	}
+
+	function movePiece(/*piece, oldSquare, newSquare*/) {
+	    var friendly, enemy, rank, capturePiece, hasEnemy, oldCol, newCol, oldRow, newRow;
+	   // newSquare = $('#' + translate(newCol) + newRow);
+	    friendly = selectedPiece.split('-')[0];
+	    rank = selectedPiece.split('-')[1];
+	    enemy = getEnemyColor(friendly);
 	    hasEnemy = hasPiece(newSquare, enemy);
+
+	    oldCol = translate(getId(selectedSquare).split('')[0]);
+	    oldRow = parseInt(getId(selectedSquare).split('')[1]);
+	    newCol = translate(getId(newSquare).split('')[0]);
+	    newRow = parseInt(getId(newSquare).split('')[1]);
 
 	    if (hasEnemy) {
 	        capturePiece = getPieceClass(newSquare.attr('class'));
-	        captured.push('<span class="' + capturePiece + '"></span>');
+	        captured.push('<span class="' + capturePiece + ' displayOnly"></span>');
 	    }
-	    removePieces($('#' + selectedSquare));
-	    removePieces(newSquare);
-	    newSquare.removeClass("empty highlighted selected", animateDuration).addClass(selectedPiece, animateDuration);
-	    $('.square').removeClass("highlighted selectable killable selected", animateDuration);
-	    moves.push('<div><span>' + moveNumber + '</span> <span class="' + piece + '"></span> ' + translate(oldCol) + oldRow + ' ' + translate(newCol) + newRow + '</div>');
 
-	    changeTurns();
+	    removePieces(selectedSquare);
+	    removePieces(newSquare);
+	    newSquare.removeClass("empty highlighted selected").addClass(selectedPiece);
+	    $('.square').removeClass("highlighted selectable killable selected");
+	    moves.push('<div><span>' + moveNumber + '</span> <span class="' + selectedPiece + ' displayOnly"></span> ' + translate(oldCol) + oldRow + ' ' + translate(newCol) + newRow + '</div>');
+
 	    updateMessage();
 	    moveNumber++;
+
+	    if (rank == 'pawn') {
+	        if ((friendly == 'white' && newRow == 8) || (friendly == 'black' && newRow == 1)) {
+	            pawnPromotion(newSquare);
+	        } else {
+	            changeTurns();
+	        }
+	    } else {
+
+	        changeTurns();
+	    }
+
 	}
 
 	function changeTurns() {
@@ -306,17 +379,19 @@
 
 	    turn = turn * -1;
 
-	    color = turn > 0 ? "White" : "Black";
+	    color = turn > 0 ? "white" : "black";
 
-	    $('.square').removeClass('selectable', animateDuration);
+	    $('.square').removeClass('selectable');
 	    if (turn > 0) {
-	        $('.white-pawn, .white-rook, .white-knight, .white-bishop, .white-queen, .white-king').addClass('selectable', animateDuration);
+	        $('.white-pawn, .white-rook, .white-knight, .white-bishop, .white-queen, .white-king').not('.promotionPiece, .displayOnly').addClass('selectable');
 	    }
 	    else {
-	        $('.black-pawn, .black-rook, .black-knight, .black-bishop, .black-queen, .black-king').addClass('selectable', animateDuration);
+	        $('.black-pawn, .black-rook, .black-knight, .black-bishop, .black-queen, .black-king').not('.promotionPiece, .displayOnly').addClass('selectable');
 	    }
 
-        $('.nextTurn').text(color)
+	    $('.nextTurn').text(titleCase(color))
+	    $('.' + color).toggleClass('hidden');
+	    $('.' + getEnemyColor(color)).toggleClass('hidden');
 	}
 
 	function checkSquare(thisSquare){
@@ -333,18 +408,18 @@
 		square = $(thisSquare).attr('id');
 
 		col = translate(square.split('')[0]);
-		row = square.split('')[1];
+		row = parseInt(square.split('')[1]);
 
 		if (colorPiece) {
 		    selectedPiece = colorPiece;
-		    selectedSquare = square;
+		    selectedSquare = $('#' + square);
 		    selectedCol = col;
             selectedRow = row;
 			
 			color = colorPiece.split('-')[0];
 			piece = colorPiece.split('-')[1];
 
-			$('.empty').removeClass("selectable", animateDuration);
+			$('.empty').removeClass("selectable");
 			switch(piece){
 			    case 'pawn': {
 			        pawn(col, row, color);
@@ -376,10 +451,10 @@
 					break;
 			}
 			validMoves.forEach(function (value) {
-			    $('#' + value).not(square).addClass("highlighted selectable", animateDuration);
+			    $('#' + value).not(square).addClass("highlighted selectable");
 			});
 			killMoves.forEach(function (value) {
-			    $('#' + value).not(square).addClass("killable", animateDuration);
+			    $('#' + value).not(square).addClass("killable");
 			});
 		}       
 	}
@@ -401,40 +476,44 @@
 	    $('.captured-list').html(cD.reverse());
 	}
 	
-	$(document).ready(function () {
-	    initBoard();
+	function clearSelection(selection) {
+	    $(selection).removeClass("selected highlighted killable");
+	}
 
-	    $(".resetNormal").click(function () {
+	function handleSquareClick() {
+	    var that;
+	    that = this;
+	    if ($(that).hasClass("selectable")) {
+	        clearSelection($(".square").not(that));
+	        $(that).toggleClass("selected");
+	        checkSquare(that);
+	    }
+	    if ($(that).hasClass("highlighted") || $(that).hasClass("killable")) {
+	        newSquare = $(that);
+	        movePiece();
+	    }
+	}
+
+	$(document).ready(function () {
+
+	    initBoard();
+	    //pawns();
+
+
+
+	    $("#standard").click(function () {
 	        initBoard();
 	    })
 
-
-		$(".resetFP").click(function () {
-		    fookinPawns();
+		$("#pawns").click(function () {
+		    pawns();
 		})
 
-		$(".square")
-		.click( function() {
-		    var that,
-                selected,
-		        highlighted;
+		$(".promotionPiece").click(function () {
+		    promote(getPieceClass($(this).attr('class')));
+		})
 
-		    that = this;
-		    highlighted = $(that).hasClass("highlighted");
-		    killable = $(that).hasClass("killable");
-		    if ($(that).hasClass("selectable")) {
-		        $(".square").not(that).removeClass("selected", animateDuration).removeClass("highlighted", animateDuration).removeClass("killable", animateDuration);
-			    $(that).toggleClass("selected");
-			    checkSquare(that);
-			}
-
-			if (highlighted || killable) {
-			    var nC, nR;
-			    nC = translate($(that).attr('id').split('')[0]);
-			    nR = parseInt($(that).attr('id').split('')[1]);
-			    movePiece(selectedPiece, selectedCol, selectedRow, nC, nR);
-			}
-		});
+		$(".square").click( handleSquareClick );
 	});
 	
 })(window, document, jQuery);

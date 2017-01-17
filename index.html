@@ -6,10 +6,30 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-	<link rel="stylesheet" href="style.css" />
-	<script type="text/javascript" src="app.js"></script>
+    <!--<link href="navbar.css" rel="stylesheet" />-->
+    <link rel="stylesheet" href="style.css" />
+    <script type="text/javascript" src="app.js"></script>
 </head>
 <body>
+    <nav class="navbar navbar-default navbar-static-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand home">Chess</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right navoptions">
+                    <li class="active"><a id="standard">Standard</a></li>
+                    <li><a id="pawns">Pawns</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
 	<div class="board">
 		<div id="a8" class="square"></div><!--
 		--><div id="b8" class="square"></div><!--
@@ -78,13 +98,28 @@
 	</div>
     <div class="info">
         <div class="moves">
-            <b>Next: </b> <span class="nextTurn">White</span>
-            <h4>Move History</h4>
+            <b>NEXT MOVE: </b> <span class="nextTurn">White</span>
+            <h4>HISTORY</h4>
             <div class="moves-list"></div>
         </div>
         <div class="captured">
-            <h4>Captured Pieces</h4>
+            <h4>CAPTURED</h4>
             <div class="captured-list"></div>
+        </div>
+        <div class="pawnPromotion hidden">
+            <h1>PROMOTION</h1>
+            <div class="white">
+                <span class="white-queen promotionPiece"></span>
+                <span class="white-bishop promotionPiece"></span>
+                <span class="white-knight promotionPiece"></span>
+                <span class="white-rook promotionPiece"></span>
+            </div>
+            <div class="black hidden">
+                <span class="black-queen promotionPiece"></span>
+                <span class="black-bishop promotionPiece"></span>
+                <span class="black-knight promotionPiece"></span>
+                <span class="black-rook promotionPiece"></span>
+            </div>
         </div>
     </div>
 </body>
