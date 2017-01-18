@@ -18,6 +18,7 @@ Features:
 * Movement
 * Attack
 * Pawn promotion
+* Standard Game mode & 'Pawns'
 
 To-do:
 * Check! 
