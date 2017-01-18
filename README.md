@@ -8,19 +8,19 @@ Best viewed in landscape mode, if mobile.
 
 _Still a work in progress._
 
-[How to play](https://www.chess.com/learn-how-to-play-chess)
+[How to play chess](https://www.chess.com/learn-how-to-play-chess)
 
 Features:
 * Scalable board & display
-* Moveable pieces
-* Turn-based game
-* Attacks
-* Display list of moves
-* Display of captured pieces
+* Turn-based 2-player
+* Move History display
+* Captured Pieces display
+* Movement
+* Attack
+* Pawn promotion
 
 To-do:
 * Check! 
 * Check-Mate!
-* Pawn promotion
 * En Passant
 * Castling
