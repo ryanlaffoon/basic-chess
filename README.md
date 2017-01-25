@@ -1,6 +1,6 @@
 # Basic Chess
 
-This is a basic chess game, built in Javascript (with jQuery), HTML and CSS.
+This is a basic chess game, built using Javascript, HTML and CSS.
 
 Hosted at [http://ryanlaffoon.github.io/basic-chess/](http://ryanlaffoon.github.io/basic-chess/)
 
@@ -19,9 +19,9 @@ Features:
 * Attack
 * Pawn promotion
 * Standard Game mode & 'Pawns'
+* Notification of 'Check'. Note - Moves which place a king in check are still allowed, but the check is noticed.
+* En Passant
 
 To-do:
-* Check! 
-* Check-Mate!
-* En Passant
+* Checkmate & Stalemate
 * Castling
