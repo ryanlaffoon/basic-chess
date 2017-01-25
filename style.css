@@ -61,7 +61,7 @@ body{
 	border: 2px solid #fff187;
 }
 
-.selectable, .killable {
+.selectable, .killable, .highlighted {
     opacity: 1;
 }
 
@@ -126,7 +126,7 @@ body{
 .pawnPromotion {
     position: fixed;
     z-index: 1;
-    top: 0;
+    top: 50px;
     left: 0;
     width: 100%;
     height: 100%;
@@ -136,6 +136,26 @@ body{
    
     background-color: white;
     background-color: rgba(255,255,255,0.75);
+}
+.winnerInfo {
+    position: fixed;
+    z-index: 1;
+    top: 50px;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    color: black;
+    font-size: 4em;
+   
+    background-color: white;
+    background-color: rgba(255,255,255,0.75);
+}
+
+.checkWarning {
+    width: 100%;
+    height: 50px;
+    text-align: center;
 }
 
 .hidden{

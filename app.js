@@ -1,97 +1,492 @@
-(function(window, document, $, undefined){
-    var mode,
-        moves,
-        moveNumber,
-        captured,
-        killMoves,
-        validMoves,
-        turn,
-        selectedPiece,
-        selectedSquare,
-        selectedCol,
-        selectedRow,
-        newSquare;
+(function (window, document, $, undefined) {
+    var gameBoard;
+
+    /* Objects */
+
+    function GameBoard() {
+        this.mode = null;
+        this.selectedPiece = null;
+        this.newSquare = null;
+        this.whiteTeam = [];
+        this.blackTeam = [];
+        this.moves = [];
+        this.captured = [];
+        this.turn = -1;
+
+        this.displayCaptured = function () {
+            var i, display;
+            display = [];
+            for (i = 0; i < this.captured.length; i++) {
+                display.push('<span class="' + this.captured[i].piece + ' displayOnly"></span>');
+            }
+            return display;
+        }
+
+        this.displayMoves = function () {
+            var i, display;
+            display = [];
+            for (i = this.moves.length; i > 0; i--) {
+                display.push('<div>' + (i) + this.moves[i - 1].display() + '</div>');
+            }
+            return display;
+        }
+        
+        this.updateMessage = function () {
+            $('.moves-list').html(gameBoard.displayMoves());
+            $('.captured-list').html(gameBoard.displayCaptured());
+            $('.nextTurn').text(gameBoard.turn > 0 ? "White" : "Black");
+        };
+
+        this.renderPieces = function () {
+            $('.square').removeClass('highlighted selectable killable selected white-pawn white-rook white-knight white-bishop white-queen white-king black-pawn black-rook black-knight black-bishop black-queen black-king')
+            .addClass('empty');
+
+            for (var i = 0; i < this.whiteTeam.length; i++) {
+                $('#' + this.whiteTeam[i].square).toggleClass(this.whiteTeam[i].piece + ' empty');
+            }
+            for (var i = 0; i < this.blackTeam.length; i++) {
+                $('#' + this.blackTeam[i].square).toggleClass(this.blackTeam[i].piece + ' empty');
+            }
+        }
+
+
+        this.findPiece = function (id) {
+            var pieces, i;
+            pieces = this.whiteTeam.concat(this.blackTeam);
+            for (i = 0; i < pieces.length; i++) {
+                if (pieces[i].square == id) {
+                    return pieces[i];
+                }
+            }
+            return null;
+        }
+
+        this.removePiece = function (piece) {
+            var team;
+            team = piece.friendly() == "white" ? this.whiteTeam : this.blackTeam;
+
+            for (var i = 0; i < team.length; i++) {
+                if (team[i].square == piece.square) {
+                    team.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        this.calculateMoves = function () {
+            var i;
+            for (i = 0; i < this.whiteTeam.length; i++) {
+                this.whiteTeam[i].checkMoves();
+            } for (i = 0; i < this.blackTeam.length; i++) {
+                this.blackTeam[i].checkMoves();
+            }
+        }
+
+        this.highlightPieces = function () {
+            var team;
+
+            team = this.turn > 0 ? this.whiteTeam : this.blackTeam;
+
+            $('.square').removeClass('selectable selected highlighted killable');
+
+            for (i = 0; i < team.length; i++) {
+                if (team[i].validMoves.length > 0 || team[i].killMoves.length > 0) {
+                    $('#' + team[i].square).addClass('selectable');
+                }
+            }
+            if (this.selectedPiece) {
+                $('#' + this.selectedPiece.square).addClass('selected');
+            }
+        }
+
+        this.rankCount = function (rank) {
+            var pieces, i, count;
+            count = 0;
+            pieces = this.whiteTeam.concat(this.blackTeam);
+            for (i = 0; i < pieces.length; i++) {
+                if (pieces[i].rank() == rank) {
+                    count++;
+                }
+            }
+            return count;
+
+        }
+
+        this.inCheck = function () {
+            var pieces, i, j, killPiece;
+            pieces = this.whiteTeam.concat(this.blackTeam);
+            for (i = 0; i < pieces.length; i++) {
+                for (j = 0; j < pieces[i].killMoves.length; j++) {
+                    killPiece = gameBoard.findPiece(pieces[i].killMoves[j]);
+                    if (killPiece && killPiece.rank() == 'king') {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        this.hasCheck = function (color) {
+            var pieces, i, j, killPiece;
+            pieces = color == 'white' ? this.whiteTeam : this.blackTeam;
+            for (i = 0; i < pieces.length; i++) {
+                for (j = 0; j < pieces[i].killMoves.length; j++) {
+                    killPiece = gameBoard.findPiece(pieces[i].killMoves[j]);
+                    if (killPiece && killPiece.rank() == 'king') {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        this.checkForWinner = function () {
+            if (this.mode == 'standard') {
+                if (this.rankCount('king') < 2) {
+                    $('.winnerInfo').removeClass('hidden');
+                    $('.winner').text(this.turn > 0 ? 'White' : 'Black');
+                }
+            } else {
+                if (this.whiteTeam.length == 0 || this.blackTeam.length == 0) {
+                    $('.winnerInfo').removeClass('hidden');
+                    $('.winner').text(this.turn > 0 ? 'White' : 'Black');
+                } else {
+                    $('.winnerInfo').addClass('hidden');
+                    $('.winner').text('');
+                }
+            }
+        }
+
+        this.changeTurns = function () {
+            
+            this.checkForWinner();
+
+            this.turn *= -1;
+            this.renderPieces();
+            this.calculateMoves();
+            this.highlightPieces();
+            this.updateMessage();
+            $('.black, .white').toggleClass('hidden');
+
+            if (this.inCheck()) {
+                $('.checkWarning').text('CHECK');
+
+            } else {
+                $('.checkWarning').text('');
+            }
+        };
+
+        this.getLastMove = function () {
+            return this.moves[this.moves.length - 1];
+        };
+
+        this.movePiece = function () {
+            var capturePiece, newCol, newRow, newId;
+            newId = getId(this.newSquare);
+            newCol = translate(newId.split('')[0]);
+            newRow = parseInt(newId.split('')[1]);
+
+            if (this.findPiece(newId) && (this.findPiece(newId).friendly() == this.selectedPiece.enemy())) {
+                capturePiece = this.findPiece(newId);
+                capturePiece.square = null;
+                this.removePiece(capturePiece);
+                this.captured.push(capturePiece);
+            }
+
+            if (this.selectedPiece.enPassantMove && newId == this.selectedPiece.enPassantMove) {
+                capturePiece = this.findPiece(this.selectedPiece.enPassantPiece);
+                capturePiece.square = null;
+                this.removePiece(capturePiece);
+                this.captured.push(capturePiece);
+                this.selectedPiece.enPassantMove = null;
+                this.selectedPiece.enPassantPiece = null;
+            }
+
+            this.moves.push(new Move(this.selectedPiece.piece, this.selectedPiece.square, newId));
+
+            this.selectedPiece.square = newId;
+
+            if (this.selectedPiece.rank() == 'pawn' && ((this.selectedPiece.friendly() == 'white' && newRow == 8) || (this.selectedPiece.friendly() == 'black' && newRow == 1))) {
+                $('.pawnPromotion').removeClass('hidden');
+            } else {
+                this.changeTurns();
+            }
+
+        };
+
+        this.reset = function (newMode) {
+            $('.mode').removeClass("active");
+            $('#' + newMode).parent('.mode').addClass("active");
+            $('.winnerInfo').addClass("hidden");
+            $('.pawnPromotion').addClass('hidden');
+
+            this.mode = newMode;
+            this.turn = -1;
+            this.moves = [];
+            this.captured = [];
+            this.selectedPiece = null;
+            this.newSquare = null;
+
+            this.buildBoard();
+            setClickHandlers();
+            this.updateMessage();
+        };
+
+        this.buildBoard = function () {
+            $('.board').html('');
+            for (c = 8; c > 0; c--) {
+                for (r = 1; r <= 8; r++) {
+                    var $div = $("<div>", { id: '' + translate(r) + c, "class": "empty square" });
+                    $('.board').append($div);
+                }
+            }
+        };
+
+        this.copy = function () {
+            var newBoard, i;
+            newBoard = new GameBoard();
+            newBoard.mode = this.mode;
+            newBoard.turn = this.turn;
+            newBoard.selectedPiece = this.selectedPiece
+            newBoard.newSquare = this.newSquare;
+
+            for (i = 0; i < this.whiteTeam.length; i++) {
+                newBoard.whiteTeam.push(this.whiteTeam[i].copy());
+            }
+            for (i = 0; i < this.blackTeam.length; i++) {
+                newBoard.blackTeam.push(this.blackTeam[i].copy());
+            }
+            for (i = 0; i < this.moves.length; i++) {
+                newBoard.moves.push(this.moves[i]);
+            }
+            for (i = 0; i < this.captured.length; i++) {
+                newBoard.captured.push(this.captured[i]);
+            }
+            return newBoard;
+        }
+    }
+
+    function Piece(piece, square) {
+        this.piece = piece;
+        this.square = square;
+
+        this.validMoves = [];
+        this.killMoves = [];
+
+        this.friendly = function () {
+            return this.piece.split('-')[0];
+        }
+        this.enemy = function () {
+            return this.piece.split('-')[0] == 'white' ? 'black' : 'white';
+        }
+        this.rank = function () {
+            return this.piece.split('-')[1];
+        }
+        this.col = function () {
+            return translate(this.square.split('')[0]);
+        }
+        this.row = function () {
+            return parseInt(this.square.split('')[1]);
+        }
+
+        this.checkMoves = function () {
+            this.killMoves = [];
+            this.validMoves = [];
+            switch (this.rank()) {
+                case 'pawn': {
+                    pawn(this);
+                    break;
+                }
+                case 'knight': {
+                    knight(this);
+                    break;
+                }
+                case 'rook': {
+                    straight(this, 8);
+                    break;
+                }
+                case 'bishop': {
+                    diagonal(this, 8);
+                    break;
+                }
+                case 'queen': {
+                    straight(this, 8);
+                    diagonal(this, 8);
+                    break;
+                }
+                case 'king': {
+                    straight(this, 1);
+                    diagonal(this, 1);
+                    break;
+                }
+                default:
+                    break;
+            }
+        };
+
+        this.highlightMoves = function () {
+            var i;
+            for (i = 0; i < this.validMoves.length; i++) {
+                $('#' + this.validMoves[i]).addClass('highlighted');
+            }
+            for (i = 0; i < this.killMoves.length; i++) {
+                $('#' + this.killMoves[i]).addClass('killable');
+            }
+        };
+
+        this.copy = function () {
+            var newPiece;
+            newPiece = new Piece(this.piece, this.square);
+            newPiece.validMoves = this.validMoves;
+            newPiece.killMoves = this.killMoves;
+            return newPiece;
+        };
+    }
+    
+    function Move(piece, from, to) {
+        this.piece = piece;
+        this.from = from;
+        this.to = to;
+
+        this.display = function () {
+            return ('<span class="' + this.piece + ' displayOnly"></span> ' + this.from + ' ' + this.to);
+        };
+    }
+
+    /* Initializers */
+
+    function testPawnHit() {
+        gameBoard = new GameBoard();
+        gameBoard.reset('test');
+
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'd4'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'e5'));
+        gameBoard.changeTurns();
+    }
+
+    function testCheck() {
+        gameBoard = new GameBoard();
+        gameBoard.reset('standard');
+
+        gameBoard.whiteTeam.push(new Piece('white-queen', 'e1'));
+        gameBoard.whiteTeam.push(new Piece('white-king', 'd1'));
+        gameBoard.blackTeam.push(new Piece('black-queen', 'e8'));
+        gameBoard.blackTeam.push(new Piece('black-king', 'd8'));
+
+        gameBoard.changeTurns();
+    }
+
+    function testEnPassant() {
+        gameBoard = new GameBoard();
+        gameBoard.reset('test');
+
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'c4'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'd7'));
+
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'f2'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'e5'));
+
+        gameBoard.changeTurns();
+    }
+
+    function testPawnPromotion() {
+        gameBoard = new GameBoard();
+        gameBoard.reset('test');
+
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'a7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'h2'));
+
+        gameBoard.changeTurns();
+    }
 
     function initBoard() {
-        mode = "standard";
-        moves = [];
-        captured = [];
-        validMoves = [];
-        killMoves = [];
-        moveNumber = 1;
+        gameBoard = new GameBoard();
 
-        $('#standard').parent().addClass("active");
-        $('#pawns').parent().removeClass("active");
+        gameBoard.reset('standard');
 
+        gameBoard.whiteTeam.push(new Piece('white-rook', 'a1'));
+        gameBoard.whiteTeam.push(new Piece('white-rook', 'h1'));
+        gameBoard.whiteTeam.push(new Piece('white-knight', 'b1'));
+        gameBoard.whiteTeam.push(new Piece('white-knight', 'g1'));
+        gameBoard.whiteTeam.push(new Piece('white-bishop', 'c1'));
+        gameBoard.whiteTeam.push(new Piece('white-bishop', 'f1'));
+        gameBoard.whiteTeam.push(new Piece('white-queen', 'e1'));
+        gameBoard.whiteTeam.push(new Piece('white-king', 'd1'));
 
-        removePieces($(".square"));
-        clearSelection($(".square"));
-		$(".square").addClass("empty");
-		$("#a1, #h1").removeClass("empty").addClass("white-rook selectable");
-		$("#b1, #g1").removeClass("empty").addClass("white-knight selectable");
-		$("#c1, #f1").removeClass("empty").addClass("white-bishop selectable");
-		$("#d1").removeClass("empty").addClass("white-king selectable");
-		$("#e1").removeClass("empty").addClass("white-queen selectable");
-		$("#a2, #b2, #c2, #d2, #e2, #f2, #g2, #h2").removeClass("empty").addClass("white-pawn selectable");
-		$("#a8, #h8").removeClass("empty").addClass("black-rook");
-		$("#b8, #g8").removeClass("empty").addClass("black-knight");
-		$("#c8, #f8").removeClass("empty").addClass("black-bishop");
-		$("#d8").removeClass("empty").addClass("black-king");
-		$("#e8").removeClass("empty").addClass("black-queen");
-		$("#a7, #b7, #c7, #d7, #e7, #f7, #g7, #h7").removeClass("empty").addClass("black-pawn");
-        // 1 = white, -1 = black.
-		turn = 1;
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'a2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'b2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'c2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'd2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'e2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'f2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'g2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'h2'));
+
+        gameBoard.blackTeam.push(new Piece('black-rook', 'a8'));
+        gameBoard.blackTeam.push(new Piece('black-rook', 'h8'));
+        gameBoard.blackTeam.push(new Piece('black-knight', 'b8'));
+        gameBoard.blackTeam.push(new Piece('black-knight', 'g8'));
+        gameBoard.blackTeam.push(new Piece('black-bishop', 'c8'));
+        gameBoard.blackTeam.push(new Piece('black-bishop', 'f8'));
+        gameBoard.blackTeam.push(new Piece('black-queen', 'e8'));
+        gameBoard.blackTeam.push(new Piece('black-king', 'd8'));
+
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'a7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'b7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'c7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'd7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'e7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'f7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'g7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'h7'));
+
+        gameBoard.changeTurns();
 	}
 
     function pawns() {
-        mode = "pawns";
-        moves = [];
-        movesDisplay = [];
-        captured = [];
-        validMoves = [];
-        killMoves = [];
-        moveNumber = 1;
+        gameBoard = new GameBoard();
+        gameBoard.reset('pawns');
 
-        $('#standard').parent().removeClass("active");
-        $('#pawns').parent().addClass("active");
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'a1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'h1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'b1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'g1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'c1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'f1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'e1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'd1'));
 
-	    removePieces($(".square"));
-	    clearSelection($(".square"));
-	    $(".square").addClass("empty");
-	    $("#a1, #b1, #c1, #d1, #e1, #f1, #g1, #h1").removeClass("empty").addClass("white-pawn selectable");
-	    $("#a2, #b2, #c2, #d2, #e2, #f2, #g2, #h2").removeClass("empty").addClass("white-pawn selectable");
-	    $("#a7, #b7, #c7, #d7, #e7, #f7, #g7, #h7").removeClass("empty").addClass("black-pawn");
-	    $("#a8, #b8, #c8, #d8, #e8, #f8, #g8, #h8").removeClass("empty").addClass("black-pawn");
-        // 1 = white, -1 = black.
-	    turn = 1;
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'a2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'b2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'c2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'd2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'e2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'f2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'g2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'h2'));
+
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'a8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'h8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'b8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'g8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'c8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'f8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'e8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'd8'));
+
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'a7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'b7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'c7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'd7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'e7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'f7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'g7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'h7'));
+
+        gameBoard.changeTurns();
     }
 
-    function testBoard() {
-        moves = [];
-        movesDisplay = [];
-        captured = [];
-        validMoves = [];
-        killMoves = [];
-        moveNumber = 1;
-        removePieces($(".square"));
-        $(".square").toggleClass("empty");
-        $("#c7").toggleClass("white-pawn selectable empty");
-        $("#e2").toggleClass("black-pawn empty");
-        // 1 = white, -1 = black.
-        turn = 1;
 
-    }
-
-	function getPieceClass(classValue) {
-		return (classValue
-		.replace('square','')
-		.replace('selected','')
-		.replace('highlighted', '')
-        .replace('selectable', '')
-        .replace('killable', '')
-        .replace('promotionPiece', '')
-		.trim());
-	}
 	
 	function translate(rowchar) {
 	    switch(rowchar){
@@ -133,387 +528,196 @@
 	function inBounds(value) {
 	    return (value > 0 && value < 9);
 	}
-    
-	function hasPiece(thisSquare, color) {
-	    return ($(thisSquare).hasClass(color + '-pawn') ||
-            $(thisSquare).hasClass(color + '-rook') ||
-            $(thisSquare).hasClass(color + '-knight') ||
-            $(thisSquare).hasClass(color + '-bishop') ||
-            $(thisSquare).hasClass(color + '-queen') ||
-            $(thisSquare).hasClass(color + '-king'));
-	}
 
-	function straight(col, row, color, limit) {
-	    var tC, tR, lim, friendly, enemy;
+	function straight(thisPiece, limit) {
+	    var tC, tR, lim, mods, i, j;
 
-	    row = parseInt(row);
-	    lim = 1;
-	    friendly = color;
-	    enemy = getEnemyColor(friendly);
+	    mods = [-1, 1];
 
-	    tC = col + 1;
-	    tR = row;
-	    while (inBounds(tC) && lim <= limit) {
-	        if (checkMove(tC, tR, friendly, enemy)) { break; }
-	        tC++;
-	        lim++;
-	    }
-	    tC = col - 1;
-	    tR = row;
-	    lim = 1;
-	    while (inBounds(tC) && lim <= limit) {
-	        if (checkMove(tC, tR, friendly, enemy)) { break; }
-	        tC--;
-	        lim++;
-	    }
-	    tC = col;
-	    tR = row + 1;
-	    lim = 1;
-	    while (inBounds(tR) && lim <= limit) {
-	        if (checkMove(tC, tR, friendly, enemy)) { break; }
-	        tR++;
-	        lim++;
-	    }
-	    tC = col;
-	    tR = row - 1;
-	    lim = 1;
-	    while (inBounds(tR) && lim <= limit) {
-	        if (checkMove(tC, tR, friendly, enemy)) { break; }
-	        tR--;
-	        lim++;
+	    for (i = 0; i < mods.length; i++) {
+	        for (j = 0; j < mods.length; j++) {
+	            tC = thisPiece.col() + mods[i];
+	            tR = thisPiece.row() + mods[j];
+	            lim = 1;
+	            while (lim <= limit) {
+	                if (checkMove(tC, thisPiece.row(), thisPiece)) {
+	                    break;
+	                }
+	                tC += mods[i];
+	                lim++;
+	            }
+	            lim = 1;
+	            while (lim <= limit) {
+	                if (checkMove(thisPiece.col(), tR, thisPiece)) { break; }
+	                tR += mods[j];
+	                lim++;
+	            }
+	        }
 	    }
 	}
 
-	function diagonal(col, row, color, limit) {
-	    var tC, tR, lim, friendly, enemy;
-
-	    row = parseInt(row);
-	    tC = col + 1;
-	    tR = row + 1;
-	    lim = 1;
-	    friendly = color;
-	    enemy = getEnemyColor(friendly);
-
-	    while (inBounds(tC) && inBounds(tR) && lim <= limit) {
-	        if (checkMove(tC, tR, friendly, enemy)) { break; }
-	        tC++;
-	        tR++;
-	        lim++;
-	    }
-	    tC = col - 1;
-	    tR = row - 1;
-	    lim = 1;
-	    while (inBounds(tC) && inBounds(tR) && lim <= limit) {
-	        if (checkMove(tC, tR, friendly, enemy)) { break; }
-	        tC--;
-	        tR--;
-	        lim++;
-	    }
-	    tC = col + 1;
-	    tR = row - 1;
-	    lim = 1;
-	    while (inBounds(tC) && inBounds(tR) && lim <= limit) {
-	        if (checkMove(tC, tR, friendly, enemy)) { break; }
-	        tC++;
-	        tR--;
-	        lim++;
-	    }
-	    tC = col - 1;
-	    tR = row + 1;
-	    lim = 1;
-	    while (inBounds(tC) && inBounds(tR) && lim <= limit) {
-	        if (checkMove(tC, tR, friendly, enemy)) { break; }
-	        tC--;
-	        tR++;
-	        lim++;
+	function diagonal(thisPiece, limit) {
+	    var tC, tR, lim, mods, i, j;
+	    mods = [-1, 1];
+	    for (i = 0; i < mods.length; i++) {
+	        for (j = 0; j < mods.length; j++) {
+	            tC = thisPiece.col() + mods[i];
+	            tR = thisPiece.row() + mods[j];
+	            lim = 1;
+	            while (lim <= limit) {
+	                if (checkMove(tC, tR, thisPiece)) { break; }
+	                tC += mods[i];
+	                tR += mods[j];
+	                lim++;
+	            }
+	        }
 	    }
 	}
 	
-	function pawn(col, row, color) {
-	    var limit, multiplier, friendly, enemy, i;
+	function pawn(thisPiece) {
+	    var limit, multiplier, i, newRow, newCol, hasFriendly, hasEnemy, enPassant, sq, epsq, epPiece, lastMove, sideChecks;
+
 	    i = 1;
-	    friendly = color;
-	    enemy = getEnemyColor(friendly);
-	    multiplier = friendly == "white" ? 1 : -1;
-	    limit = ((friendly == 'black' && row == 7) || (friendly == 'white' && row == 2)) ? 2 : 1;
+	    sideChecks = [-1, 1];
+	    multiplier = thisPiece.friendly() == "white" ? 1 : -1;
+	    limit = ((thisPiece.friendly() == 'black' && thisPiece.row() == 7) || (thisPiece.friendly() == 'white' && thisPiece.row() == 2)) ? 2 : 1;
 
 	    while (i <= limit) {
-	        var newRow, hasFriendly, hasEnemy;
+	        newRow = (thisPiece.row() + (i * multiplier));
+	        newCol = thisPiece.col();
+	        sq = translate(newCol) + newRow;
+	        hasFriendly = gameBoard.findPiece(sq) && gameBoard.findPiece(sq).friendly() == thisPiece.friendly();
+	        hasEnemy = gameBoard.findPiece(sq) && gameBoard.findPiece(sq).friendly() == thisPiece.enemy();
 
-	        newRow = (row + (i * multiplier));
-            hasFriendly = hasPiece($('#' + translate(col) + newRow), friendly);
-            hasEnemy = hasPiece($('#' + translate(col) + newRow), enemy);
-
-            if (hasFriendly || hasEnemy || !inBounds(newRow)) {
+	        if (!inBounds(newRow) || hasFriendly || hasEnemy) {
 	            break;
+	        }else{
+	            thisPiece.validMoves.push(sq);
 	        }
-	        validMoves.push('' + translate(col) + newRow);
-            i++
+	        i++;
 	    }
 
-	    if (inBounds(row + multiplier) && inBounds(col + 1) && hasPiece($('#' + translate(col + 1) + (row + multiplier)), enemy)) {
-	        killMoves.push(translate(col + 1) + (row + multiplier));
-	    }
-	    if (inBounds(row + multiplier) && inBounds(col - 1) && hasPiece($('#' + translate(col - 1) + (row + multiplier)), enemy)) {
-	        killMoves.push(translate(col - 1) + (row + multiplier));
+	    newRow = thisPiece.row() + multiplier;
+	    if (inBounds(newRow)) {
+	        for (i = 0; i < sideChecks.length; i++) {
+	            newCol = thisPiece.col() + sideChecks[i];
+	            sq = translate(newCol) + newRow;
+	            epsq = translate(newCol) + thisPiece.row()
+	            hasEnemy = gameBoard.findPiece(sq) && gameBoard.findPiece(sq).friendly() == thisPiece.enemy();
+
+	            lastMove = gameBoard.getLastMove();
+	            epPiece = gameBoard.findPiece(epsq);
+
+	            if (lastMove && epPiece) {
+
+	                enPassant = epPiece.friendly().toString() == thisPiece.enemy().toString()
+                        && thisPiece.enemy().toString() == lastMove.piece.split('-')[0].toString()
+                        && epPiece.rank().toString() == lastMove.piece.split('-')[1].toString()
+                        && lastMove.piece.split('-')[1].toString() == new String("pawn")
+                        && lastMove.to.toString() == epsq
+                        && lastMove.from.split('')[1] == (lastMove.piece.split('-')[0].toString() == 'white' ? 2 : 7)
+                        && lastMove.to.split('')[1] == (lastMove.piece.split('-')[0].toString() == 'white' ? 4 : 5);
+	            }
+
+	            if (inBounds(newCol) && (hasEnemy || enPassant)) {
+	                thisPiece.killMoves.push(sq);
+	                if (enPassant) {
+	                    thisPiece.enPassantMove = sq;
+	                    thisPiece.enPassantPiece = epsq;
+	                }
+	            }
+	        }
 	    }
 	}
 
-	function knight(col, row, color) {
-	    var friendly, enemy;
-
-	    row = parseInt(row);
-	    friendly = color;
-	    enemy = getEnemyColor(friendly);
-
-	    checkMove(col + 2, row + 1, friendly, enemy);
-	    checkMove(col + 1, row + 2, friendly, enemy);
-	    checkMove(col + 2, row - 1, friendly, enemy);
-	    checkMove(col + 1, row - 2, friendly, enemy);
-	    checkMove(col - 2, row + 1, friendly, enemy);
-	    checkMove(col - 1, row + 2, friendly, enemy);
-	    checkMove(col - 2, row - 1, friendly, enemy);
-	    checkMove(col - 1, row - 2, friendly, enemy);
+	function knight(thisPiece) {
+	    checkMove(thisPiece.col() + 2, thisPiece.row() + 1, thisPiece);
+	    checkMove(thisPiece.col() + 1, thisPiece.row() + 2, thisPiece);
+	    checkMove(thisPiece.col() + 2, thisPiece.row() - 1, thisPiece);
+	    checkMove(thisPiece.col() + 1, thisPiece.row() - 2, thisPiece);
+	    checkMove(thisPiece.col() - 2, thisPiece.row() + 1, thisPiece);
+	    checkMove(thisPiece.col() - 1, thisPiece.row() + 2, thisPiece);
+	    checkMove(thisPiece.col() - 2, thisPiece.row() - 1, thisPiece);
+	    checkMove(thisPiece.col() - 1, thisPiece.row() - 2, thisPiece);
 	}
 
-	function checkMove(tC, tR, friendly, enemy) {
-	    var hasFriendly, hasEnemy;
-
-	    hasFriendly = hasPiece($('#' + translate(tC) + tR), friendly);
-	    hasEnemy = hasPiece($('#' + translate(tC) + tR), enemy);
+	function checkMove(tC, tR, thisPiece) {
+	    var hasFriendly, hasEnemy, illegal, sq;
 
 	    if (inBounds(tC) && inBounds(tR)) {
-            
+	        sq = translate(tC) + tR;
+
+	        hasFriendly = gameBoard.findPiece(sq) && gameBoard.findPiece(sq).friendly() == thisPiece.friendly();
+	        hasEnemy = gameBoard.findPiece(sq) && gameBoard.findPiece(sq).friendly() == thisPiece.enemy();
+
+	        //illegal = illegalMove(tC, tR, thisPiece);
+
 	        if (!hasFriendly && !hasEnemy) {
-	            validMoves.push('' + translate(tC) + tR);
-	            return false;
+	            thisPiece.validMoves.push('' + translate(tC) + tR);
 	        }
 	        if (hasEnemy) {
-	            killMoves.push('' + translate(tC) + tR);
-	            return true;
+	            thisPiece.killMoves.push('' + translate(tC) + tR);
 	        }
-	        if (hasFriendly) {
-	            return true;
-	        }
+	        return hasFriendly || hasEnemy;
+
+	    } else {
+	        return false;
 	    }
 	}
 
-	function removePieces(thisSquare) {
-	    $(thisSquare).removeClass("white-pawn white-rook white-knight white-bishop white-queen white-king black-pawn black-rook black-knight black-bishop black-queen black-king");
+	function illegalMove(col, row, piece) {
+	    var testBoard = gameBoard.copy();
+	    if (testBoard.selectedPiece) {
+	        testBoard.newSquare = $('#' + translate(col) + row);
+	        testBoard.movePiece();
+	        return testBoard.hasCheck(piece.friendly());
+	    } return false;
 	}
 
-	function getEnemyColor(friendly){
-	    return friendly == "white" ? "black" : "white";
-	}
-
-	function pawnPromotion() {
-	    $('.pawnPromotion').removeClass('hidden');
-	    $('.square').removeClass('selectable');
-	}
-
-	function promote(newPiece) {
-	    //removePieces(selectedSquare);
-	    removePieces(newSquare);
-	    newSquare.addClass(newPiece);
+	function promote(promotionPiece) {
+	    gameBoard.selectedPiece.piece = $(promotionPiece).attr('class').replace('promotionPiece', '').trim();
 	    $('.pawnPromotion').addClass('hidden');
-	    changeTurns();
-	}
-
-	function castle(kingSpace, rookSpace) {
-	    // To Do
-	    // King must not have moved
-	    // This rook must not have moved
-        // Free spaces between the two
-	}
-
-	function enPassant() {
-        // To Do
+	    gameBoard.changeTurns();
 	}
 
 	function getId(thisSquare){
 	    return $(thisSquare).attr('id');
 	}
 
-	function movePiece(/*piece, oldSquare, newSquare*/) {
-	    var friendly, enemy, rank, capturePiece, hasEnemy, oldCol, newCol, oldRow, newRow;
-	   // newSquare = $('#' + translate(newCol) + newRow);
-	    friendly = selectedPiece.split('-')[0];
-	    rank = selectedPiece.split('-')[1];
-	    enemy = getEnemyColor(friendly);
-	    hasEnemy = hasPiece(newSquare, enemy);
-
-	    oldCol = translate(getId(selectedSquare).split('')[0]);
-	    oldRow = parseInt(getId(selectedSquare).split('')[1]);
-	    newCol = translate(getId(newSquare).split('')[0]);
-	    newRow = parseInt(getId(newSquare).split('')[1]);
-
-	    if (hasEnemy) {
-	        capturePiece = getPieceClass(newSquare.attr('class'));
-	        captured.push('<span class="' + capturePiece + ' displayOnly"></span>');
-	    }
-
-	    removePieces(selectedSquare);
-	    removePieces(newSquare);
-	    newSquare.removeClass("empty highlighted selected").addClass(selectedPiece);
-	    $('.square').removeClass("highlighted selectable killable selected");
-	    moves.push('<div><span>' + moveNumber + '</span> <span class="' + selectedPiece + ' displayOnly"></span> ' + translate(oldCol) + oldRow + ' ' + translate(newCol) + newRow + '</div>');
-
-	    updateMessage();
-	    moveNumber++;
-
-	    if (rank == 'pawn') {
-	        if ((friendly == 'white' && newRow == 8) || (friendly == 'black' && newRow == 1)) {
-	            pawnPromotion(newSquare);
-	        } else {
-	            changeTurns();
-	        }
-	    } else {
-
-	        changeTurns();
-	    }
-
-	}
-
-	function changeTurns() {
-	    var color;
-
-	    turn = turn * -1;
-
-	    color = turn > 0 ? "white" : "black";
-
-	    $('.square').removeClass('selectable');
-	    if (turn > 0) {
-	        $('.white-pawn, .white-rook, .white-knight, .white-bishop, .white-queen, .white-king').not('.promotionPiece, .displayOnly').addClass('selectable');
-	    }
-	    else {
-	        $('.black-pawn, .black-rook, .black-knight, .black-bishop, .black-queen, .black-king').not('.promotionPiece, .displayOnly').addClass('selectable');
-	    }
-
-	    $('.nextTurn').text(titleCase(color))
-	    $('.' + color).toggleClass('hidden');
-	    $('.' + getEnemyColor(color)).toggleClass('hidden');
-	}
-
-	function checkSquare(thisSquare){
-		var colorPiece,
-		color,
-		piece,
-		square,
-		col,
-		row;
-		
-		validMoves = [];
-		killMoves = [];
-		colorPiece = getPieceClass($(thisSquare).attr('class')).replace('empty','');
-		square = $(thisSquare).attr('id');
-
-		col = translate(square.split('')[0]);
-		row = parseInt(square.split('')[1]);
-
-		if (colorPiece) {
-		    selectedPiece = colorPiece;
-		    selectedSquare = $('#' + square);
-		    selectedCol = col;
-            selectedRow = row;
-			
-			color = colorPiece.split('-')[0];
-			piece = colorPiece.split('-')[1];
-
-			$('.empty').removeClass("selectable");
-			switch(piece){
-			    case 'pawn': {
-			        pawn(col, row, color);
-					break;
-				}
-			    case 'knight': {
-			        knight(col, row, color);
-			        break;
-			    }
-			    case 'rook': {
-			        straight(col, row, color, 8);
-			        break;
-			    }
-			    case 'bishop': {
-			        diagonal(col, row, color, 8);
-			        break;
-			    }
-			    case 'queen': {
-			        straight(col, row, color, 8);
-			        diagonal(col, row, color, 8);
-			        break;
-			    }
-			    case 'king': {
-			        straight(col, row, color, 1);
-			        diagonal(col, row, color, 1);
-			        break;
-			    }
-			    default:
-					break;
-			}
-			validMoves.forEach(function (value) {
-			    $('#' + value).not(square).addClass("highlighted selectable");
-			});
-			killMoves.forEach(function (value) {
-			    $('#' + value).not(square).addClass("killable");
-			});
-		}       
-	}
-
-	function titleCase(str) {
-		str = str.toLowerCase().split(' ');
-		for(var i = 0; i < str.length; i++){
-		  str[i] = str[i].split('');
-		  str[i][0] = str[i][0].toUpperCase();
-		  str[i] = str[i].join('');
-		}
-		return str.join(' ');
-	}
-
-	function updateMessage() {
-	    var mD = moves.slice();
-	    var cD = captured.slice();
-	    $('.moves-list').html(mD.reverse());
-	    $('.captured-list').html(cD.reverse());
-	}
-	
-	function clearSelection(selection) {
-	    $(selection).removeClass("selected highlighted killable");
+	function setClickHandlers() {
+	    $(".promotionPiece").click(function () {
+	        promote(this);
+	    });
+	    $(".square").click(handleSquareClick);
+	    $("#standard").click(initBoard);
+	    $("#pawns").click(pawns);
 	}
 
 	function handleSquareClick() {
-	    var that;
-	    that = this;
-	    if ($(that).hasClass("selectable")) {
-	        clearSelection($(".square").not(that));
-	        $(that).toggleClass("selected");
-	        checkSquare(that);
+	    var that, m1, m2;
+	    that = $(this);
+	    m1 = that.hasClass("selectable");
+	    m2 = that.hasClass("highlighted") || that.hasClass("killable");
+	    if (m1) {
+	        //$(".square").not(that).removeClass("selected highlighted killable");
+	       // that.toggleClass("selected");
+	        
+	        gameBoard.selectedPiece = gameBoard.findPiece(getId(that));
+	        gameBoard.highlightPieces();
+	        gameBoard.selectedPiece.highlightMoves();
 	    }
-	    if ($(that).hasClass("highlighted") || $(that).hasClass("killable")) {
-	        newSquare = $(that);
-	        movePiece();
+	    else if (m2) {
+	        gameBoard.newSquare = that;
+	        gameBoard.movePiece();
+	    }
+	    else {
+	        gameBoard.selectedPiece = null;
+	        gameBoard.highlightPieces();
 	    }
 	}
 
 	$(document).ready(function () {
-
 	    initBoard();
-	    //pawns();
-
-
-
-	    $("#standard").click(function () {
-	        initBoard();
-	    })
-
-		$("#pawns").click(function () {
-		    pawns();
-		})
-
-		$(".promotionPiece").click(function () {
-		    promote(getPieceClass($(this).attr('class')));
-		})
-
-		$(".square").click( handleSquareClick );
 	});
 	
 })(window, document, jQuery);
