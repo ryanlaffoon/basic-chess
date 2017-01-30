@@ -9,8 +9,6 @@ body{
 }
 
 .board{
-	/*min-height: 96vh;
-	width: 96vh;*/
     margin-top: 10px;
     min-height: 72vh;
 	width: 72vh;
@@ -162,42 +160,19 @@ body{
     display: none;
 }
 
+.white-man:before {
+    content: "\26C0";
+}
 .white-king:before {
-    content: "\2654";
+    content: "\26C1";
 }
-.white-queen:before {
-    content: "\2655";
-}
-.white-rook:before {
-    content: "\2656";
-}
-.white-bishop:before {
-    content: "\2657";
-}
-.white-knight:before {
-    content: "\2658";
-}
-.white-pawn:before {
-    content: "\2659";
+.black-man:before {
+    content: "\26C2";
 }
 .black-king:before {
-    content: "\265A";
+    content: "\26C3";
 }
-.black-queen:before {
-    content: "\265B";
-}
-.black-rook:before {
-    content: "\265C";
-}
-.black-bishop:before {
-    content: "\265D";
-}
-.black-knight:before {
-    content: "\265E";
-}
-.black-pawn:before {
-    content: "\265F";
-}
+
 .empty {
 	color: transparent !important;
 }
