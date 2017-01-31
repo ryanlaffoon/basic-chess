@@ -38,7 +38,7 @@
         };
 
         this.renderPieces = function () {
-            $('.square').removeClass('highlighted selectable killable selected white-man white-king black-man black-king')
+            $('.square').removeClass('highlighted selectable killable selected white-pawn white-rook white-knight white-bishop white-queen white-king black-pawn black-rook black-knight black-bishop black-queen black-king')
             .addClass('empty');
 
             for (var i = 0; i < this.whiteTeam.length; i++) {
@@ -48,6 +48,7 @@
                 $('#' + this.blackTeam[i].square).toggleClass(this.blackTeam[i].piece + ' empty');
             }
         }
+
 
         this.findPiece = function (id) {
             var pieces, i;
@@ -83,9 +84,10 @@
 
         this.highlightPieces = function () {
             var team;
+
             team = this.turn > 0 ? this.whiteTeam : this.blackTeam;
 
-            $('.square').removeClass('selectable highlighted killable');
+            $('.square').removeClass('selectable selected highlighted killable');
 
             for (i = 0; i < team.length; i++) {
                 if (team[i].validMoves.length > 0 || team[i].killMoves.length > 0) {
@@ -110,9 +112,41 @@
 
         }
 
+        this.inCheck = function () {
+            var pieces, i, j, killPiece;
+            pieces = this.whiteTeam.concat(this.blackTeam);
+            for (i = 0; i < pieces.length; i++) {
+                for (j = 0; j < pieces[i].killMoves.length; j++) {
+                    killPiece = gameBoard.findPiece(pieces[i].killMoves[j]);
+                    if (killPiece && killPiece.rank() == 'king') {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        this.hasCheck = function (color) {
+            var pieces, i, j, killPiece;
+            pieces = color == 'white' ? this.whiteTeam : this.blackTeam;
+            for (i = 0; i < pieces.length; i++) {
+                for (j = 0; j < pieces[i].killMoves.length; j++) {
+                    killPiece = gameBoard.findPiece(pieces[i].killMoves[j]);
+                    if (killPiece && killPiece.rank() == 'king') {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
 
         this.checkForWinner = function () {
             if (this.mode == 'standard') {
+                if (this.rankCount('king') < 2) {
+                    $('.winnerInfo').removeClass('hidden');
+                    $('.winner').text(this.turn > 0 ? 'White' : 'Black');
+                }
+            } else {
                 if (this.whiteTeam.length == 0 || this.blackTeam.length == 0) {
                     $('.winnerInfo').removeClass('hidden');
                     $('.winner').text(this.turn > 0 ? 'White' : 'Black');
@@ -132,13 +166,21 @@
             this.calculateMoves();
             this.highlightPieces();
             this.updateMessage();
+            $('.black, .white').toggleClass('hidden');
+
+            if (this.inCheck()) {
+                $('.checkWarning').text('CHECK');
+
+            } else {
+                $('.checkWarning').text('');
+            }
         };
 
         this.getLastMove = function () {
             return this.moves[this.moves.length - 1];
         };
 
-        this.jumpPiece = function (jumpSquare) {
+        this.movePiece = function () {
             var capturePiece, newCol, newRow, newId;
             newId = getId(this.newSquare);
             newCol = translate(newId.split('')[0]);
@@ -147,63 +189,29 @@
             if (this.findPiece(newId) && (this.findPiece(newId).friendly() == this.selectedPiece.enemy())) {
                 capturePiece = this.findPiece(newId);
                 capturePiece.square = null;
-                this.removePiece(jumpSquare);
+                this.removePiece(capturePiece);
                 this.captured.push(capturePiece);
             }
-        };
 
-        this.movePiece = function () {
-            var capturePiece, newCol, newRow, newId, canContinue;
-            newId = getId(this.newSquare);
+            if (this.selectedPiece.enPassantMove && newId == this.selectedPiece.enPassantMove) {
+                capturePiece = this.findPiece(this.selectedPiece.enPassantPiece);
+                capturePiece.square = null;
+                this.removePiece(capturePiece);
+                this.captured.push(capturePiece);
+                this.selectedPiece.enPassantMove = null;
+                this.selectedPiece.enPassantPiece = null;
+            }
 
-            newCol = translate(newId.split('')[0]);
-            newRow = parseInt(newId.split('')[1]);
-            canContinue = true;
+            this.moves.push(new Move(this.selectedPiece.piece, this.selectedPiece.square, newId));
 
-            if ((Math.abs(this.selectedPiece.col() - newCol) == 2) && (Math.abs(this.selectedPiece.row() - newRow) == 2)) {
+            this.selectedPiece.square = newId;
 
-                for (var i = 0; i < this.selectedPiece.killMoves.length; i++) {
-                    var test = this.selectedPiece.killMoves[i].split(' ')[0];
-                    var test2 = this.selectedPiece.killMoves[i].split(' ')[1];
-                    if (test == newId) {
-                        capturePiece = this.findPiece(test2);
-                        capturePiece.square = null;
-                        this.removePiece(capturePiece);
-                        this.captured.push(capturePiece);
-                    }
-                }
-
-                this.moves.push(new Move(this.selectedPiece.piece, this.selectedPiece.square, newId));
-
-                this.selectedPiece.square = newId;
-
-                if (this.selectedPiece.rank() == 'man' && ((this.selectedPiece.friendly() == 'white' && newRow == 8) || (this.selectedPiece.friendly() == 'black' && newRow == 1))) {
-                    var newPiece = this.selectedPiece.friendly() + '-' + 'king';
-                    this.selectedPiece.piece = newPiece;
-                }
-
-                this.calculateMoves();
-                this.renderPieces();
-                this.highlightPieces();
-
-                if (this.selectedPiece.killMoves.length == 0) {
-                    this.changeTurns();
-                } else {
-                    this.selectedPiece.validMoves = [];
-                    this.selectedPiece.highlightMoves();
-                }
+            if (this.selectedPiece.rank() == 'pawn' && ((this.selectedPiece.friendly() == 'white' && newRow == 8) || (this.selectedPiece.friendly() == 'black' && newRow == 1))) {
+                $('.pawnPromotion').removeClass('hidden');
             } else {
-                this.moves.push(new Move(this.selectedPiece.piece, this.selectedPiece.square, newId));
-
-                this.selectedPiece.square = newId;
-
-                if (this.selectedPiece.rank() == 'man' && ((this.selectedPiece.friendly() == 'white' && newRow == 8) || (this.selectedPiece.friendly() == 'black' && newRow == 1))) {
-                    var newPiece = this.selectedPiece.friendly() + '-' + 'king';
-                    this.selectedPiece.piece = newPiece;
-                }
-
                 this.changeTurns();
             }
+
         };
 
         this.reset = function (newMode) {
@@ -233,6 +241,29 @@
                 }
             }
         };
+
+        this.copy = function () {
+            var newBoard, i;
+            newBoard = new GameBoard();
+            newBoard.mode = this.mode;
+            newBoard.turn = this.turn;
+            newBoard.selectedPiece = this.selectedPiece
+            newBoard.newSquare = this.newSquare;
+
+            for (i = 0; i < this.whiteTeam.length; i++) {
+                newBoard.whiteTeam.push(this.whiteTeam[i].copy());
+            }
+            for (i = 0; i < this.blackTeam.length; i++) {
+                newBoard.blackTeam.push(this.blackTeam[i].copy());
+            }
+            for (i = 0; i < this.moves.length; i++) {
+                newBoard.moves.push(this.moves[i]);
+            }
+            for (i = 0; i < this.captured.length; i++) {
+                newBoard.captured.push(this.captured[i]);
+            }
+            return newBoard;
+        }
     }
 
     function Piece(piece, square) {
@@ -259,35 +290,38 @@
         }
 
         this.checkMoves = function () {
-            var multiplier, tC, tR, jC, jR, upDn, i;
-            
             this.killMoves = [];
             this.validMoves = [];
-            multiplier = this.friendly() == 'white' ? 1 : -1;
-            upDn = [-1, 1];
-
-            if (this.rank() == 'man') {
-                tR = this.row() + multiplier;
-                jR = this.row() + (multiplier * 2);
-                for (i = 0; i < upDn.length; i++) {
-                    tC = this.col() + upDn[i];
-                    jC = this.col() + (upDn[i] * 2);
-                    checkMove(tC, tR, jC, jR, this);
+            switch (this.rank()) {
+                case 'pawn': {
+                    pawn(this);
+                    break;
                 }
-            }
-            else {
-                for (i = 0; i < upDn.length; i++) {
-                    tR = this.row() + upDn[i];
-                    jR = this.row() + (upDn[i] * 2);
-                    for (j = 0; j < upDn.length; j++) {
-                        tC = this.col() + upDn[j];
-                        jC = this.col() + (upDn[j] * 2);
-                        checkMove(tC, tR, jC, jR, this);
-                    }
+                case 'knight': {
+                    knight(this);
+                    break;
                 }
-                
+                case 'rook': {
+                    straight(this, 8);
+                    break;
+                }
+                case 'bishop': {
+                    diagonal(this, 8);
+                    break;
+                }
+                case 'queen': {
+                    straight(this, 8);
+                    diagonal(this, 8);
+                    break;
+                }
+                case 'king': {
+                    straight(this, 1);
+                    diagonal(this, 1);
+                    break;
+                }
+                default:
+                    break;
             }
-    
         };
 
         this.highlightMoves = function () {
@@ -296,7 +330,7 @@
                 $('#' + this.validMoves[i]).addClass('highlighted');
             }
             for (i = 0; i < this.killMoves.length; i++) {
-                $('#' + this.killMoves[i].split(' ')[0]).addClass('killable');
+                $('#' + this.killMoves[i]).addClass('killable');
             }
         };
 
@@ -319,69 +353,141 @@
         };
     }
 
+    /* Initializers */
+
+    function testPawnHit() {
+        gameBoard = new GameBoard();
+        gameBoard.reset('test');
+
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'd4'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'e5'));
+        gameBoard.changeTurns();
+    }
+
+    function testCheck() {
+        gameBoard = new GameBoard();
+        gameBoard.reset('standard');
+
+        gameBoard.whiteTeam.push(new Piece('white-queen', 'e1'));
+        gameBoard.whiteTeam.push(new Piece('white-king', 'd1'));
+        gameBoard.blackTeam.push(new Piece('black-queen', 'e8'));
+        gameBoard.blackTeam.push(new Piece('black-king', 'd8'));
+
+        gameBoard.changeTurns();
+    }
+
+    function testEnPassant() {
+        gameBoard = new GameBoard();
+        gameBoard.reset('test');
+
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'c4'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'd7'));
+
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'f2'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'e5'));
+
+        gameBoard.changeTurns();
+    }
+
+    function testPawnPromotion() {
+        gameBoard = new GameBoard();
+        gameBoard.reset('test');
+
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'a7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'h2'));
+
+        gameBoard.changeTurns();
+    }
+
     function initBoard() {
         gameBoard = new GameBoard();
 
         gameBoard.reset('standard');
 
-        gameBoard.whiteTeam.push(new Piece('white-man', 'a1'));
-        gameBoard.whiteTeam.push(new Piece('white-man', 'c1'));
-        gameBoard.whiteTeam.push(new Piece('white-man', 'e1'));
-        gameBoard.whiteTeam.push(new Piece('white-man', 'g1'));
+        gameBoard.whiteTeam.push(new Piece('white-rook', 'a1'));
+        gameBoard.whiteTeam.push(new Piece('white-rook', 'h1'));
+        gameBoard.whiteTeam.push(new Piece('white-knight', 'b1'));
+        gameBoard.whiteTeam.push(new Piece('white-knight', 'g1'));
+        gameBoard.whiteTeam.push(new Piece('white-bishop', 'c1'));
+        gameBoard.whiteTeam.push(new Piece('white-bishop', 'f1'));
+        gameBoard.whiteTeam.push(new Piece('white-queen', 'e1'));
+        gameBoard.whiteTeam.push(new Piece('white-king', 'd1'));
 
-        gameBoard.whiteTeam.push(new Piece('white-man', 'b2'));
-        gameBoard.whiteTeam.push(new Piece('white-man', 'd2'));
-        gameBoard.whiteTeam.push(new Piece('white-man', 'f2'));
-        gameBoard.whiteTeam.push(new Piece('white-man', 'h2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'a2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'b2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'c2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'd2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'e2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'f2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'g2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'h2'));
 
-        gameBoard.whiteTeam.push(new Piece('white-man', 'a3'));
-        gameBoard.whiteTeam.push(new Piece('white-man', 'c3'));
-        gameBoard.whiteTeam.push(new Piece('white-man', 'e3'));
-        gameBoard.whiteTeam.push(new Piece('white-man', 'g3'));
+        gameBoard.blackTeam.push(new Piece('black-rook', 'a8'));
+        gameBoard.blackTeam.push(new Piece('black-rook', 'h8'));
+        gameBoard.blackTeam.push(new Piece('black-knight', 'b8'));
+        gameBoard.blackTeam.push(new Piece('black-knight', 'g8'));
+        gameBoard.blackTeam.push(new Piece('black-bishop', 'c8'));
+        gameBoard.blackTeam.push(new Piece('black-bishop', 'f8'));
+        gameBoard.blackTeam.push(new Piece('black-queen', 'e8'));
+        gameBoard.blackTeam.push(new Piece('black-king', 'd8'));
 
-        gameBoard.blackTeam.push(new Piece('black-man', 'b8'));
-        gameBoard.blackTeam.push(new Piece('black-man', 'd8'));
-        gameBoard.blackTeam.push(new Piece('black-man', 'f8'));
-        gameBoard.blackTeam.push(new Piece('black-man', 'h8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'a7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'b7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'c7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'd7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'e7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'f7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'g7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'h7'));
 
-        gameBoard.blackTeam.push(new Piece('black-man', 'a7'));
-        gameBoard.blackTeam.push(new Piece('black-man', 'c7'));
-        gameBoard.blackTeam.push(new Piece('black-man', 'e7'));
-        gameBoard.blackTeam.push(new Piece('black-man', 'g7'));
-
-        gameBoard.blackTeam.push(new Piece('black-man', 'b6'));
-        gameBoard.blackTeam.push(new Piece('black-man', 'd6'));
-        gameBoard.blackTeam.push(new Piece('black-man', 'f6'));
-        gameBoard.blackTeam.push(new Piece('black-man', 'h6'));
         gameBoard.changeTurns();
 	}
 
-    function testKing() {
+    function pawns() {
         gameBoard = new GameBoard();
+        gameBoard.reset('pawns');
 
-        gameBoard.reset('standard');
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'a1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'h1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'b1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'g1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'c1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'f1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'e1'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'd1'));
 
-        gameBoard.whiteTeam.push(new Piece('white-man', 'a7'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'a2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'b2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'c2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'd2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'e2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'f2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'g2'));
+        gameBoard.whiteTeam.push(new Piece('white-pawn', 'h2'));
 
-        gameBoard.blackTeam.push(new Piece('black-man', 'b2'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'a8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'h8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'b8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'g8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'c8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'f8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'e8'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'd8'));
+
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'a7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'b7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'c7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'd7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'e7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'f7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'g7'));
+        gameBoard.blackTeam.push(new Piece('black-pawn', 'h7'));
 
         gameBoard.changeTurns();
     }
 
-    function testMultiJump() {
-        gameBoard = new GameBoard();
 
-        gameBoard.reset('standard');
-
-        gameBoard.whiteTeam.push(new Piece('white-man', 'c3'));
-
-        gameBoard.blackTeam.push(new Piece('black-man', 'd4'));
-
-        gameBoard.blackTeam.push(new Piece('black-man', 'f6'));
-
-        gameBoard.changeTurns();
-    }
-
+	
 	function translate(rowchar) {
 	    switch(rowchar){
 	        case 'a':
@@ -423,8 +529,120 @@
 	    return (value > 0 && value < 9);
 	}
 
-	function checkMove(tC, tR, jC, jR, thisPiece) {
-	    var hasFriendly, hasEnemy, jumpFriendly, jumpEnemy, sq, jsq;
+	function straight(thisPiece, limit) {
+	    var tC, tR, lim, mods, i, j;
+
+	    mods = [-1, 1];
+
+	    for (i = 0; i < mods.length; i++) {
+	        for (j = 0; j < mods.length; j++) {
+	            tC = thisPiece.col() + mods[i];
+	            tR = thisPiece.row() + mods[j];
+	            lim = 1;
+	            while (lim <= limit) {
+	                if (checkMove(tC, thisPiece.row(), thisPiece)) {
+	                    break;
+	                }
+	                tC += mods[i];
+	                lim++;
+	            }
+	            lim = 1;
+	            while (lim <= limit) {
+	                if (checkMove(thisPiece.col(), tR, thisPiece)) { break; }
+	                tR += mods[j];
+	                lim++;
+	            }
+	        }
+	    }
+	}
+
+	function diagonal(thisPiece, limit) {
+	    var tC, tR, lim, mods, i, j;
+	    mods = [-1, 1];
+	    for (i = 0; i < mods.length; i++) {
+	        for (j = 0; j < mods.length; j++) {
+	            tC = thisPiece.col() + mods[i];
+	            tR = thisPiece.row() + mods[j];
+	            lim = 1;
+	            while (lim <= limit) {
+	                if (checkMove(tC, tR, thisPiece)) { break; }
+	                tC += mods[i];
+	                tR += mods[j];
+	                lim++;
+	            }
+	        }
+	    }
+	}
+	
+	function pawn(thisPiece) {
+	    var limit, multiplier, i, newRow, newCol, hasFriendly, hasEnemy, enPassant, sq, epsq, epPiece, lastMove, sideChecks;
+
+	    i = 1;
+	    sideChecks = [-1, 1];
+	    multiplier = thisPiece.friendly() == "white" ? 1 : -1;
+	    limit = ((thisPiece.friendly() == 'black' && thisPiece.row() == 7) || (thisPiece.friendly() == 'white' && thisPiece.row() == 2)) ? 2 : 1;
+
+	    while (i <= limit) {
+	        newRow = (thisPiece.row() + (i * multiplier));
+	        newCol = thisPiece.col();
+	        sq = translate(newCol) + newRow;
+	        hasFriendly = gameBoard.findPiece(sq) && gameBoard.findPiece(sq).friendly() == thisPiece.friendly();
+	        hasEnemy = gameBoard.findPiece(sq) && gameBoard.findPiece(sq).friendly() == thisPiece.enemy();
+
+	        if (!inBounds(newRow) || hasFriendly || hasEnemy) {
+	            break;
+	        }else{
+	            thisPiece.validMoves.push(sq);
+	        }
+	        i++;
+	    }
+
+	    newRow = thisPiece.row() + multiplier;
+	    if (inBounds(newRow)) {
+	        for (i = 0; i < sideChecks.length; i++) {
+	            newCol = thisPiece.col() + sideChecks[i];
+	            sq = translate(newCol) + newRow;
+	            epsq = translate(newCol) + thisPiece.row()
+	            hasEnemy = gameBoard.findPiece(sq) && gameBoard.findPiece(sq).friendly() == thisPiece.enemy();
+
+	            lastMove = gameBoard.getLastMove();
+	            epPiece = gameBoard.findPiece(epsq);
+
+	            if (lastMove && epPiece) {
+
+	                enPassant = epPiece.friendly().toString() == thisPiece.enemy().toString()
+                        && thisPiece.enemy().toString() == lastMove.piece.split('-')[0].toString()
+                        && epPiece.rank().toString() == lastMove.piece.split('-')[1].toString()
+                        && lastMove.piece.split('-')[1].toString() == new String("pawn")
+                        && lastMove.to.toString() == epsq
+                        && lastMove.from.split('')[1] == (lastMove.piece.split('-')[0].toString() == 'white' ? 2 : 7)
+                        && lastMove.to.split('')[1] == (lastMove.piece.split('-')[0].toString() == 'white' ? 4 : 5);
+	            }
+
+	            if (inBounds(newCol) && (hasEnemy || enPassant)) {
+	                thisPiece.killMoves.push(sq);
+	                if (enPassant) {
+	                    thisPiece.enPassantMove = sq;
+	                    thisPiece.enPassantPiece = epsq;
+	                }
+	            }
+	        }
+	    }
+	}
+
+	function knight(thisPiece) {
+	    checkMove(thisPiece.col() + 2, thisPiece.row() + 1, thisPiece);
+	    checkMove(thisPiece.col() + 1, thisPiece.row() + 2, thisPiece);
+	    checkMove(thisPiece.col() + 2, thisPiece.row() - 1, thisPiece);
+	    checkMove(thisPiece.col() + 1, thisPiece.row() - 2, thisPiece);
+	    checkMove(thisPiece.col() - 2, thisPiece.row() + 1, thisPiece);
+	    checkMove(thisPiece.col() - 1, thisPiece.row() + 2, thisPiece);
+	    checkMove(thisPiece.col() - 2, thisPiece.row() - 1, thisPiece);
+	    checkMove(thisPiece.col() - 1, thisPiece.row() - 2, thisPiece);
+	}
+
+	function checkMove(tC, tR, thisPiece) {
+	    var hasFriendly, hasEnemy, illegal, sq;
 
 	    if (inBounds(tC) && inBounds(tR)) {
 	        sq = translate(tC) + tR;
@@ -432,25 +650,34 @@
 	        hasFriendly = gameBoard.findPiece(sq) && gameBoard.findPiece(sq).friendly() == thisPiece.friendly();
 	        hasEnemy = gameBoard.findPiece(sq) && gameBoard.findPiece(sq).friendly() == thisPiece.enemy();
 
+	        //illegal = illegalMove(tC, tR, thisPiece);
+
 	        if (!hasFriendly && !hasEnemy) {
 	            thisPiece.validMoves.push('' + translate(tC) + tR);
 	        }
 	        if (hasEnemy) {
-	            if (inBounds(jC) && inBounds(jR)) {
-	                jsq = translate(jC) + jR;
-	                jumpFriendly = gameBoard.findPiece(jsq) && gameBoard.findPiece(jsq).friendly() == thisPiece.friendly();
-	                jumpEnemy = gameBoard.findPiece(jsq) && gameBoard.findPiece(jsq).friendly() == thisPiece.enemy();
-	                if (!jumpFriendly && !jumpEnemy) {
-	                    thisPiece.killMoves.push('' + translate(jC) + jR + ' ' + translate(tC) + tR);
-	                }
-	            } else {
-	                return false;
-	            }
+	            thisPiece.killMoves.push('' + translate(tC) + tR);
 	        }
-	        return hasFriendly;
+	        return hasFriendly || hasEnemy;
+
 	    } else {
 	        return false;
 	    }
+	}
+
+	function illegalMove(col, row, piece) {
+	    var testBoard = gameBoard.copy();
+	    if (testBoard.selectedPiece) {
+	        testBoard.newSquare = $('#' + translate(col) + row);
+	        testBoard.movePiece();
+	        return testBoard.hasCheck(piece.friendly());
+	    } return false;
+	}
+
+	function promote(promotionPiece) {
+	    gameBoard.selectedPiece.piece = $(promotionPiece).attr('class').replace('promotionPiece', '').trim();
+	    $('.pawnPromotion').addClass('hidden');
+	    gameBoard.changeTurns();
 	}
 
 	function getId(thisSquare){
@@ -458,8 +685,12 @@
 	}
 
 	function setClickHandlers() {
+	    $(".promotionPiece").click(function () {
+	        promote(this);
+	    });
 	    $(".square").click(handleSquareClick);
 	    $("#standard").click(initBoard);
+	    $("#pawns").click(pawns);
 	}
 
 	function handleSquareClick() {
@@ -467,8 +698,10 @@
 	    that = $(this);
 	    m1 = that.hasClass("selectable");
 	    m2 = that.hasClass("highlighted") || that.hasClass("killable");
-        m3 = that.hasClass("killable");
-	    if (m1) {        
+	    if (m1) {
+	        //$(".square").not(that).removeClass("selected highlighted killable");
+	       // that.toggleClass("selected");
+	        
 	        gameBoard.selectedPiece = gameBoard.findPiece(getId(that));
 	        gameBoard.highlightPieces();
 	        gameBoard.selectedPiece.highlightMoves();

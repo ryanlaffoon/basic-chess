@@ -18,12 +18,12 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand home">Checkers</a>
+                <a class="navbar-brand home">Chess</a>
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <ul class="nav navbar-nav navbar-right navoptions">
                     <li class="mode active"><a id="standard">Standard</a></li>
-                    <!--<li class="mode"><a id="pawns">Pawns</a></li>-->
+                    <li class="mode"><a id="pawns">Pawns</a></li>
                 </ul>
             </div>
         </div>
@@ -39,6 +39,21 @@
         <div class="captured">
             <h4>CAPTURED</h4>
             <div class="captured-list"></div>
+        </div>
+        <div class="pawnPromotion hidden">
+            <h1>PROMOTION</h1>
+            <div class="white hidden">
+                <span class="white-queen promotionPiece"></span>
+                <span class="white-bishop promotionPiece"></span>
+                <span class="white-knight promotionPiece"></span>
+                <span class="white-rook promotionPiece"></span>
+            </div>
+            <div class="black">
+                <span class="black-queen promotionPiece"></span>
+                <span class="black-bishop promotionPiece"></span>
+                <span class="black-knight promotionPiece"></span>
+                <span class="black-rook promotionPiece"></span>
+            </div>
         </div>
         <div class="winnerInfo hidden">
             <h1>GAME OVER</h1>
